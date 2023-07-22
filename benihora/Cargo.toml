@@ -1,0 +1,10 @@
+[package]
+name = "benihora"
+version = "0.1.0"
+edition = "2021"
+authors = ["carrotflakes <carrotflakes@gmail.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+biquad = "0.4"
