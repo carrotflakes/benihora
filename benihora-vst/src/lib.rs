@@ -77,7 +77,6 @@ impl Synth {
                 },
                 Routine {
                     events: vec![
-                        (0.0, routine::Event::Sound { sound: false }),
                         (
                             0.0,
                             routine::Event::Constriction {
@@ -85,14 +84,14 @@ impl Synth {
                                 strength: 0.7,
                             },
                         ),
+                        (0.0, routine::Event::ForceDiameter),
                         (
-                            0.08,
+                            0.0,
                             routine::Event::Constriction {
                                 i: 1,
                                 strength: -5.0,
                             },
                         ),
-                        (0.01, routine::Event::Sound { sound: true }),
                     ],
                 },
             ],
@@ -129,6 +128,11 @@ impl Synth {
             }
             routine::Event::Sound { sound } => {
                 benihora.sound = sound;
+            }
+            routine::Event::ForceDiameter => {
+                benihora.benihora.tract.update_diameter();
+                benihora.benihora.tract.current_diameter =
+                    benihora.benihora.tract.target_diameter.clone();
             }
         });
 

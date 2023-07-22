@@ -13,6 +13,7 @@ pub enum Event {
     Velum { openness: f64 },
     Pitch { value: f64 },
     Sound { sound: bool },
+    ForceDiameter,
 }
 
 impl Event {
@@ -23,6 +24,7 @@ impl Event {
             Event::Velum { .. } => EventKind::Velum,
             Event::Pitch { .. } => EventKind::Pitch,
             Event::Sound { .. } => EventKind::Sound,
+            Event::ForceDiameter => EventKind::ForceDiameter,
         }
     }
 }
@@ -34,6 +36,7 @@ pub enum EventKind {
     Velum,
     Pitch,
     Sound,
+    ForceDiameter,
 }
 
 #[derive(Default)]
