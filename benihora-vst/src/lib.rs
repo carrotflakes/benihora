@@ -50,7 +50,7 @@ impl Default for MyPlugin {
 impl Default for MyPluginParams {
     fn default() -> Self {
         Self {
-            editor_state: EguiState::from_size(320, 210),
+            editor_state: EguiState::from_size(320, 220),
 
             gain: FloatParam::new(
                 "Gain",

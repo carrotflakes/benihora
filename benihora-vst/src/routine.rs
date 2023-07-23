@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Routine {
+    pub name: String,
     pub events: Vec<(f64, Event)>,
 }
 

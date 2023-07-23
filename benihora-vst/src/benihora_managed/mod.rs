@@ -209,12 +209,12 @@ impl Frequency {
             .pid
             .process(pid, (target_frequency / self.new_frequency).ln())
             .exp();
+        self.new_frequency *= self.pitchbend;
         self.new_frequency = self.new_frequency.clamp(10.0, 10000.0);
     }
 
     pub fn get(&mut self, lambda: f64) -> f64 {
-        let frequency = lerp(self.old_frequency, self.new_frequency, lambda);
-        frequency * self.pitchbend
+        lerp(self.old_frequency, self.new_frequency, lambda)
     }
 }
 

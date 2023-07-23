@@ -24,7 +24,8 @@ pub fn knob_ui(
         }
     }
     if response.dragged() {
-        let delta = -response.drag_delta().y as f64;
+        let amount = if ui.input().modifiers.shift { 0.1 } else { 1.0 };
+        let delta = -response.drag_delta().y as f64 * amount;
         *value = (*value + delta * (range.end - range.start) / 100.0).clamp(range.start, range.end);
         response.mark_changed();
         ui.output().cursor_icon = CursorIcon::ResizeVertical;
@@ -111,7 +112,8 @@ pub fn knob_param<'a, P: Param>(
             response.mark_changed();
         }
         if response.dragged() {
-            let delta = -response.drag_delta().y;
+            let amount = if ui.input().modifiers.shift { 0.1 } else { 1.0 };
+            let delta = -response.drag_delta().y * amount;
 
             let value = (param.modulated_normalized_value() + delta * 0.01).clamp(0.0, 1.0);
             setter.set_parameter(param, param.preview_plain(value));

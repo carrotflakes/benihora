@@ -17,186 +17,195 @@ pub(crate) fn editor_ui(
 ) {
     egui::CentralPanel::default().show(egui_ctx, |ui| {
         let mut synth = state.synth.lock().unwrap();
+
         ui.horizontal(|ui| {
-            if ui
-                .add(egui::widgets::DragValue::new(&mut synth.sound_speed).clamp_range(1.0..=6.0))
-                .changed()
-            {
-                synth.benihora = None;
-            }
-            ui.label("sound speed");
-            if ui
-                .add(egui::widgets::DragValue::new(&mut synth.seed).clamp_range(0..=100))
-                .changed()
-            {
-                synth.benihora = None;
-            }
-            ui.label("seed");
-            ui.checkbox(&mut synth.benihora_params.always_sound, "always");
-        });
-        if synth.benihora.is_some() {
-            ui.horizontal(|ui| {
-                ui.vertical(|ui| {
-                    ui.label("glottis");
-                    ui.horizontal(|ui| {
-                        ui.add(knob_log(
-                            0.1..100.0,
-                            &mut synth.benihora_params.frequency_pid.kp,
-                            "frequency kp",
-                        ));
-                        ui.add(knob_log(
-                            0.1..1000.0,
-                            &mut synth.benihora_params.frequency_pid.ki,
-                            "frequency ki",
-                        ));
-                        ui.add(knob(
-                            -0.9..0.9,
-                            &mut synth.benihora_params.frequency_pid.kd,
-                            "frequency kd",
-                        ));
-                        ui.add(knob_param(&state.vibrato_amount, setter));
-                        ui.add(knob_log(
-                            0.1..20.0,
-                            &mut synth.benihora_params.vibrato_frequency,
-                            "vibrato frequency",
-                        ));
-                        ui.add(knob(
-                            0.0..5.0,
-                            &mut synth.benihora_params.wobble_amount,
-                            "frequency wobble",
-                        ));
-                    });
-                    ui.horizontal(|ui| {
-                        ui.add(knob_log(
-                            0.1..1000.0,
-                            &mut synth.benihora_params.intensity_pid.kp,
-                            "intensity kp",
-                        ));
-                        ui.add(knob_log(
-                            0.1..1000.0,
-                            &mut synth.benihora_params.intensity_pid.ki,
-                            "intensity ki",
-                        ));
-                        // ui.add(knob(
-                        //     -0.9..0.9,
-                        //     &mut synth.benihora_params.intensity_pid.kd,
-                        //     "intensity kd",
-                        // ));
-                        ui.add(knob(
-                            0.0..5.0,
-                            &mut synth.benihora_params.tenseness_wobble_amount,
-                            "tensness wobble",
-                        ))
-                    });
-                    ui.horizontal(|ui| {
-                        ui.add(knob(
-                            0.0..10.0,
-                            &mut synth.benihora_params.aspiration_level,
-                            "aspiration level",
-                        ));
-                        ui.add(knob(
-                            0.0..1.0,
-                            &mut synth.benihora.as_mut().unwrap().tenseness.target_tenseness,
-                            "tensness",
-                        ));
-                        ui.add(knob(
-                            0.0..1.0,
-                            &mut synth.benihora.as_mut().unwrap().loudness.target,
-                            "loudness",
-                        ));
-                        if ui.button("reset freq").clicked() {
-                            synth.benihora.as_mut().unwrap().frequency.set(440.0, true);
-                        }
-                    });
-
-                    ui.label("tract");
-                    ui.horizontal(|ui| {
-                        match synth.tongue_control {
-                            crate::synth::Control::Host => {
-                                ui.add(knob_param(&state.tongue_x, setter));
-                                ui.add(knob_param(&state.tongue_y, setter));
-                            }
-                            crate::synth::Control::Internal => {
-                                let tract = &mut synth.benihora.as_mut().unwrap().tract;
-                                ui.add(knob(12.0..28.0, &mut tract.tongue_target.0, "tongue x"));
-                                ui.add(knob(2.0..4.0, &mut tract.tongue_target.1, "tongue y"));
-                                ui.add(knob_log(
-                                    0.1..100.0,
-                                    &mut synth.benihora.as_mut().unwrap().tract.speed,
-                                    "tongue speed",
-                                ));
-                            }
-                        }
-
-                        {
-                            let mut b = synth.tongue_control == Control::Host;
-                            ui.checkbox(&mut b, "host");
-                            synth.tongue_control =
-                                if b { Control::Host } else { Control::Internal };
-                        }
-                    });
-                    ui.horizontal(|ui| {
-                        ui.add(
-                            egui::widgets::DragValue::new(&mut synth.default_routine)
-                                .clamp_range(0..=10),
-                        );
-                        ui.label("default routine");
-                    });
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(
+                            egui::widgets::DragValue::new(&mut synth.sound_speed)
+                                .clamp_range(1.0..=6.0),
+                        )
+                        .changed()
+                    {
+                        synth.request_reset();
+                    }
+                    ui.label("Sound speed");
                 });
 
-                ui.vertical(|ui| {
-                    let view_id = ui.id().with("view");
-                    let view_mode = ui
-                        .data()
-                        .get_persisted::<usize>(view_id)
-                        .unwrap_or_default();
+                ui.label("Glottis");
+                ui.horizontal(|ui| {
+                    ui.add(knob_log(
+                        0.1..100.0,
+                        &mut synth.benihora_params.frequency_pid.kp,
+                        "frequency kp",
+                    ));
+                    ui.add(knob_log(
+                        0.1..1000.0,
+                        &mut synth.benihora_params.frequency_pid.ki,
+                        "frequency ki",
+                    ));
+                    ui.add(knob(
+                        -0.9..0.9,
+                        &mut synth.benihora_params.frequency_pid.kd,
+                        "frequency kd",
+                    ));
+                    ui.add(knob_param(&state.vibrato_amount, setter));
+                    ui.add(knob_log(
+                        0.1..20.0,
+                        &mut synth.benihora_params.vibrato_frequency,
+                        "vibrato frequency",
+                    ));
+                    ui.add(knob(
+                        0.0..5.0,
+                        &mut synth.benihora_params.wobble_amount,
+                        "frequency wobble",
+                    ));
+                });
+                ui.horizontal(|ui| {
+                    ui.add(knob_log(
+                        0.1..1000.0,
+                        &mut synth.benihora_params.intensity_pid.kp,
+                        "intensity kp",
+                    ));
+                    ui.add(knob_log(
+                        0.1..1000.0,
+                        &mut synth.benihora_params.intensity_pid.ki,
+                        "intensity ki",
+                    ));
+                    // ui.add(knob(
+                    //     -0.9..0.9,
+                    //     &mut synth.benihora_params.intensity_pid.kd,
+                    //     "intensity kd",
+                    // ));
+                    ui.add(knob(
+                        0.0..5.0,
+                        &mut synth.benihora_params.tenseness_wobble_amount,
+                        "tensness wobble",
+                    ))
+                });
+                ui.horizontal(|ui| {
+                    ui.add(knob(
+                        0.0..10.0,
+                        &mut synth.benihora_params.aspiration_level,
+                        "aspiration level",
+                    ));
+                    ui.add(knob(
+                        0.0..1.0,
+                        &mut synth.benihora.as_mut().unwrap().tenseness.target_tenseness,
+                        "tensness",
+                    ));
+                    ui.add(knob(
+                        0.0..1.0,
+                        &mut synth.benihora.as_mut().unwrap().loudness.target,
+                        "loudness",
+                    ));
+                    if ui.link("Reset freq").clicked() {
+                        synth.benihora.as_mut().unwrap().frequency.set(440.0, true);
+                    }
+                });
 
-                    let view_mode_name = [
-                        "tract",
-                        "glottis plot",
-                        "glottis waveform",
-                        "routines",
-                        "frequency response",
-                    ][view_mode];
-                    if ui.button(view_mode_name).clicked() {
-                        let data = &mut ui.data();
-                        let view = data.get_persisted_mut_or_default::<usize>(view_id);
-                        *view = (*view + 1) % 4;
+                ui.label("Tract");
+                ui.horizontal(|ui| {
+                    match synth.tongue_control {
+                        crate::synth::Control::Host => {
+                            ui.add(knob_param(&state.tongue_x, setter));
+                            ui.add(knob_param(&state.tongue_y, setter));
+                        }
+                        crate::synth::Control::Internal => {
+                            let tract = &mut synth.benihora.as_mut().unwrap().tract;
+                            ui.add(knob(12.0..28.0, &mut tract.tongue_target.0, "tongue x"));
+                            ui.add(knob(2.0..4.0, &mut tract.tongue_target.1, "tongue y"));
+                            ui.add(knob_log(
+                                0.1..100.0,
+                                &mut synth.benihora.as_mut().unwrap().tract.speed,
+                                "tongue speed",
+                            ));
+                        }
                     }
 
-                    match view_mode {
-                        0 => {
-                            tract::show_tract(ui, &mut synth);
-                        }
-                        1 => {
-                            let history = &synth.benihora.as_ref().unwrap().history;
-                            show_history(ui, history);
-                        }
-                        2 => {
-                            show_waveform(
-                                ui,
-                                synth
-                                    .benihora
-                                    .as_ref()
-                                    .unwrap()
-                                    .waveform_recorder
-                                    .get_waveform(),
-                            );
-                        }
-                        3 => routine::show_routines(ui, &mut synth),
-                        4 => {
-                            show_frequency_response(
-                                ui,
-                                &benihora_tract_frequency_response(
-                                    &synth.benihora.as_ref().unwrap().benihora.tract,
-                                ),
-                            );
-                        }
-                        _ => unreachable!(),
-                    };
+                    {
+                        let mut b = synth.tongue_control == Control::Host;
+                        ui.checkbox(&mut b, "host");
+                        synth.tongue_control = if b { Control::Host } else { Control::Internal };
+                    }
+                });
+
+                ui.horizontal(|ui| {
+                    ui.add(
+                        egui::widgets::DragValue::new(&mut synth.noteon_routine)
+                            .clamp_range(0..=10),
+                    );
+                    ui.label("Noteon routine");
+                });
+
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(egui::widgets::DragValue::new(&mut synth.seed).clamp_range(0..=100))
+                        .changed()
+                    {
+                        synth.request_reset();
+                    }
+                    ui.label("Seed");
+                    ui.checkbox(&mut synth.benihora_params.always_sound, "Always");
                 });
             });
-        }
+
+            ui.vertical(|ui| {
+                let view_id = ui.id().with("view");
+                let view_mode = ui
+                    .data()
+                    .get_persisted::<usize>(view_id)
+                    .unwrap_or_default();
+
+                let view_mode_name = [
+                    "Tract",
+                    "Glottis plot",
+                    "Glottis waveform",
+                    "Routines",
+                    "Frequency response",
+                ][view_mode];
+                if ui.link(view_mode_name).clicked() {
+                    let data = &mut ui.data();
+                    let view = data.get_persisted_mut_or_default::<usize>(view_id);
+                    *view = (*view + 1) % 4;
+                }
+
+                match view_mode {
+                    0 => {
+                        tract::show_tract(ui, &mut synth);
+                    }
+                    1 => {
+                        let history = &synth.benihora.as_ref().unwrap().history;
+                        show_history(ui, history);
+                    }
+                    2 => {
+                        show_waveform(
+                            ui,
+                            synth
+                                .benihora
+                                .as_ref()
+                                .unwrap()
+                                .waveform_recorder
+                                .get_waveform(),
+                        );
+                    }
+                    3 => {
+                        ui.separator();
+                        routine::show_routines(ui, &mut synth);
+                    }
+                    4 => {
+                        show_frequency_response(
+                            ui,
+                            &benihora_tract_frequency_response(
+                                &synth.benihora.as_ref().unwrap().benihora.tract,
+                            ),
+                        );
+                    }
+                    _ => unreachable!(),
+                };
+            });
+        });
     });
 }
 

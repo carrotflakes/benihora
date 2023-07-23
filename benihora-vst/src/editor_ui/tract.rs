@@ -76,12 +76,21 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         );
 
         // tongue
-        for pos in tongue_poses {
-            ui.painter().circle_filled(
-                to_screen * egui::pos2(pos.0 as f32, (pos.1 as f32) + 4.0),
-                1.6,
-                egui::Color32::RED.linear_multiply(0.25),
-            );
+        for (i, pos) in tongue_poses.iter().enumerate() {
+            let pos = to_screen * egui::pos2(pos.0 as f32, (pos.1 as f32) + 4.0);
+            if pointer.map(|p| (p - pos).length() < 5.0).unwrap_or(false) {
+                egui::containers::show_tooltip_for(
+                    ui.ctx(),
+                    ui.id().with("__tooltip"),
+                    &rect,
+                    |ui| {
+                        ui.label(format!("Tongue {}", i));
+                    },
+                );
+            }
+
+            ui.painter()
+                .circle_filled(pos, 1.6, egui::Color32::RED.linear_multiply(0.25));
         }
 
         // constriction
@@ -92,6 +101,15 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
                 ui.painter()
                     .circle_filled(pos, 5.0, egui::Color32::YELLOW.linear_multiply(0.1));
                 ui.painter().circle_filled(pos, 1.6, egui::Color32::YELLOW);
+
+                egui::containers::show_tooltip_for(
+                    ui.ctx(),
+                    ui.id().with("__tooltip"),
+                    &rect,
+                    |ui| {
+                        ui.label(format!("Constriction {}", i));
+                    },
+                );
             } else {
                 ui.painter()
                     .circle_filled(pos, 1.6, egui::Color32::YELLOW.linear_multiply(0.25));
