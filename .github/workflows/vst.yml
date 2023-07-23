@@ -1,0 +1,50 @@
+# reference: https://github.com/robbert-vdh/nih-plug/blob/master/.github/workflows/build.yml
+
+name: Build VST
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { name: ubuntu-20.04, os: ubuntu-20.04, cross-target: "" }
+          - {
+              name: macos-universal,
+              os: macos-11,
+              cross-target: aarch64-apple-darwin,
+            }
+          - { name: windows, os: windows-latest, cross-target: "" }
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Setup
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libgl-dev libjack-dev libx11-xcb-dev  libxcb1-dev libxcb-dri2-0-dev libxcb-icccm4-dev libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+      - name: Rust update
+        run: rustup update
+
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          cargo xtask bundle benihora-vst --release
+        working-directory: ./benihora-vst
+
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: benihora-vst_${{ matrix.name }}
+          path: ./benihora-vst/target/bundled/benihora.vst3
