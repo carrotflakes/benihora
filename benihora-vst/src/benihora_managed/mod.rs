@@ -45,7 +45,7 @@ impl Params {
     pub fn new() -> Self {
         Self {
             always_sound: false,
-            frequency_pid: pid_controller::PIDParam::new(50.0, 20.0, 0.3),
+            frequency_pid: pid_controller::PIDParam::new(50.0, 20.0, 0.0),
             intensity_pid: pid_controller::PIDParam::new(10.0, 100.0, 0.0), // recomend kd = 0.0
             wobble_amount: 0.1,
             vibrato_amount: 0.005,
@@ -60,7 +60,7 @@ impl BenihoraManaged {
         let interval = 0.02;
         Self {
             sound: false,
-            frequency: Frequency::new(interval, seed, 140.0, sample_rate),
+            frequency: Frequency::new(interval, seed, 140.0, 1.0 / interval),
             tenseness: Tenseness::new(interval, seed, 0.6),
             intensity: Intensity::new(sample_rate),
             loudness: Loudness::new(0.6f64.powf(0.25)),
@@ -89,6 +89,7 @@ impl BenihoraManaged {
                 params.wobble_amount,
                 params.vibrato_amount,
                 params.vibrato_frequency,
+                &params.frequency_pid,
             );
             self.tenseness.update();
             self.tract.update(
@@ -108,7 +109,7 @@ impl BenihoraManaged {
                 0.0
             },
         );
-        let frequency = self.frequency.get(&params.frequency_pid, lambda);
+        let frequency = self.frequency.get(lambda);
         let tenseness = self.tenseness.get(lambda);
         let loudness = self.loudness.process(self.dtime);
 
@@ -147,10 +148,9 @@ impl BenihoraManaged {
 }
 
 pub struct Frequency {
-    value: f64,
     pid: pid_controller::PIDController,
-    old_vibrate: f64,
-    new_vibrate: f64,
+    old_frequency: f64,
+    new_frequency: f64,
     target_frequency: f64,
     pub pitchbend: f64,
     phase: f64,
@@ -159,12 +159,11 @@ pub struct Frequency {
 }
 
 impl Frequency {
-    pub fn new(dtime: f64, seed: u32, frequency: f64, sample_rate: f64) -> Self {
+    pub fn new(dtime: f64, seed: u32, frequency: f64, update_rate: f64) -> Self {
         Self {
-            value: frequency,
-            pid: pid_controller::PIDController::new(sample_rate),
-            old_vibrate: 1.0,
-            new_vibrate: 1.0,
+            pid: pid_controller::PIDController::new(update_rate),
+            old_frequency: frequency,
+            new_frequency: frequency,
             target_frequency: frequency,
             pitchbend: 1.0,
             phase: (seed as f64 / 10.0) % 1.0,
@@ -178,7 +177,8 @@ impl Frequency {
     pub fn set(&mut self, frequency: f64, reset: bool) {
         self.target_frequency = frequency;
         if reset {
-            self.value = frequency;
+            self.old_frequency = frequency;
+            self.new_frequency = frequency;
         }
     }
 
@@ -188,6 +188,7 @@ impl Frequency {
         wobble_amount: f64,
         vibrato_amount: f64,
         vibrato_frequency: f64,
+        pid: &pid_controller::PIDParam,
     ) {
         let mut vibrato = vibrato_amount * (TAU * self.phase).sin();
         self.phase = (self.phase + dtime * vibrato_frequency) % 1.0;
@@ -198,17 +199,18 @@ impl Frequency {
             self.wiggles[1].process();
         }
 
-        self.old_vibrate = self.new_vibrate;
-        self.new_vibrate = 1.0 + vibrato;
+        self.old_frequency = self.new_frequency;
+        let target_frequency = self.target_frequency * (1.0 + vibrato);
+        self.new_frequency *= self
+            .pid
+            .process(pid, (target_frequency / self.new_frequency).ln())
+            .exp();
+        self.new_frequency = self.new_frequency.clamp(10.0, 10000.0);
     }
 
-    pub fn get(&mut self, pid: &pid_controller::PIDParam, lambda: f64) -> f64 {
-        let vibrate = lerp(self.old_vibrate, self.new_vibrate, lambda);
-        let target_frequency = self.target_frequency * vibrate * self.pitchbend;
-        // self.value *= self.pid.process(target_frequency / self.value - 1.0) + 1.0;
-        self.value += self.pid.process(pid, target_frequency - self.value);
-        self.value = self.value.clamp(10.0, 10000.0);
-        self.value
+    pub fn get(&mut self, lambda: f64) -> f64 {
+        let frequency = lerp(self.old_frequency, self.new_frequency, lambda);
+        frequency * self.pitchbend
     }
 }
 

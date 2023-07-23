@@ -1,7 +1,11 @@
 mod knob;
+mod routine;
 
 use self::knob::{knob, knob_log, knob_param};
-use crate::{MyPluginParams, Synth, FFT_PLANNER};
+use crate::{
+    synth::{Control, Synth},
+    MyPluginParams, FFT_PLANNER,
+};
 use benihora::tract::Tract;
 use nih_plug::prelude::*;
 use nih_plug_egui::egui;
@@ -35,6 +39,7 @@ pub(crate) fn editor_ui(
         if synth.benihora.is_some() {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
+                    ui.label("glottis");
                     ui.horizontal(|ui| {
                         ui.add(knob_log(
                             0.1..1000.0,
@@ -100,6 +105,28 @@ pub(crate) fn editor_ui(
                             synth.benihora.as_mut().unwrap().frequency.set(440.0, true);
                         }
                     });
+
+                    ui.label("tract");
+                    ui.horizontal(|ui| {
+                        match synth.tongue_control {
+                            crate::synth::Control::Host => {
+                                ui.add(knob_param(&state.tongue_x, setter));
+                                ui.add(knob_param(&state.tongue_y, setter));
+                            }
+                            crate::synth::Control::Internal => {
+                                let tract = &mut synth.benihora.as_mut().unwrap().tract;
+                                ui.add(knob(12.0..28.0, &mut tract.tongue_target.0, "tongue x"));
+                                ui.add(knob(2.0..4.0, &mut tract.tongue_target.1, "tongue y"));
+                            }
+                        }
+
+                        {
+                            let mut b = synth.tongue_control == Control::Host;
+                            ui.checkbox(&mut b, "host control");
+                            synth.tongue_control =
+                                if b { Control::Host } else { Control::Internal };
+                        }
+                    });
                     ui.horizontal(|ui| {
                         ui.add(
                             egui::widgets::DragValue::new(&mut synth.default_routine)
@@ -115,41 +142,50 @@ pub(crate) fn editor_ui(
                         .data()
                         .get_persisted::<usize>(view_id)
                         .unwrap_or_default();
-                    match view_mode {
-                        0 => show_tract(ui, &mut synth),
-                        1 => {
-                            let history = &synth.benihora.as_ref().unwrap().history;
-                            show_history(ui, history)
-                        }
-                        2 => show_waveform(
-                            ui,
-                            synth
-                                .benihora
-                                .as_ref()
-                                .unwrap()
-                                .waveform_recorder
-                                .get_waveform(),
-                        ),
-                        3 => show_frequency_response(
-                            ui,
-                            &benihora_tract_frequency_response(
-                                &synth.benihora.as_ref().unwrap().benihora.tract,
-                            ),
-                        ),
-                        _ => unreachable!(),
-                    };
-                    let view_mode_name = match view_mode {
-                        0 => "tract",
-                        1 => "glottis graph",
-                        2 => "glottis waveform",
-                        3 => "frequency response",
-                        _ => unreachable!(),
-                    };
+
+                    let view_mode_name = [
+                        "tract",
+                        "glottis graph",
+                        "glottis waveform",
+                        "routines",
+                        "frequency response",
+                    ][view_mode];
                     if ui.button(view_mode_name).clicked() {
                         let data = &mut ui.data();
                         let view = data.get_persisted_mut_or_default::<usize>(view_id);
-                        *view = (*view + 1) % 3;
+                        *view = (*view + 1) % 4;
                     }
+
+                    match view_mode {
+                        0 => {
+                            show_tract(ui, &mut synth);
+                        }
+                        1 => {
+                            let history = &synth.benihora.as_ref().unwrap().history;
+                            show_history(ui, history);
+                        }
+                        2 => {
+                            show_waveform(
+                                ui,
+                                synth
+                                    .benihora
+                                    .as_ref()
+                                    .unwrap()
+                                    .waveform_recorder
+                                    .get_waveform(),
+                            );
+                        }
+                        3 => routine::show_routines(ui, &mut synth),
+                        4 => {
+                            show_frequency_response(
+                                ui,
+                                &benihora_tract_frequency_response(
+                                    &synth.benihora.as_ref().unwrap().benihora.tract,
+                                ),
+                            );
+                        }
+                        _ => unreachable!(),
+                    };
                 });
             });
         }

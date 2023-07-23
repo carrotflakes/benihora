@@ -1,283 +1,21 @@
 mod benihora_managed;
 mod editor_ui;
 mod routine;
+mod synth;
 mod voice_manager;
 mod waveform_recorder;
 
-use benihora_managed::{BenihoraManaged, Params as BenihoraParams};
+use benihora::tract::DEFAULT_TONGUE;
+use benihora_managed::BenihoraManaged;
 use nih_plug::prelude::*;
 use nih_plug_egui::{create_egui_editor, EguiState};
-use routine::{Routine, Runtime};
-use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
     sync::{Arc, Mutex},
 };
-use voice_manager::VoiceManager;
 
 thread_local! {
     pub static FFT_PLANNER: RefCell<rustfft::FftPlanner<f32>> = RefCell::new(rustfft::FftPlanner::new());
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Synth {
-    // Don't forget to add serde default to new fields
-    sound_speed: f64,
-    seed: u32,
-    benihora_params: BenihoraParams,
-    tongue_poses: Vec<(f64, f64)>,
-    other_constrictions: Vec<(f64, f64)>,
-    routines: Vec<Routine>,
-    default_routine: usize,
-
-    #[serde(skip)]
-    time: f64,
-    #[serde(skip)]
-    note_off_time: f64,
-    #[serde(skip)]
-    benihora: Option<BenihoraManaged>,
-    #[serde(skip)]
-    voice_manager: VoiceManager,
-    #[serde(skip)]
-    routine_runtime: Runtime,
-}
-
-impl Synth {
-    pub fn new() -> Self {
-        Synth {
-            sound_speed: 3.0,
-            seed: 0,
-            benihora_params: BenihoraParams::new(),
-            tongue_poses: vec![
-                (27.2, 2.20), // i
-                (19.4, 3.43), // e
-                (12.9, 2.43), // a
-                (14.0, 2.09), // o
-                (22.8, 2.05), // u
-            ],
-            other_constrictions: vec![(25.0, 1.0), (30.0, 1.0), (35.0, 1.0), (41.0, 1.6)],
-            routines: vec![
-                Routine {
-                    events: vec![
-                        (
-                            0.0,
-                            routine::Event::Tongue {
-                                i: 0,
-                                speed: Some(200.0),
-                            },
-                        ),
-                        (
-                            0.1,
-                            routine::Event::Tongue {
-                                i: 2,
-                                speed: Some(20.0),
-                            },
-                        ),
-                    ],
-                },
-                Routine {
-                    events: vec![
-                        (
-                            0.0,
-                            routine::Event::Constriction {
-                                i: 1,
-                                strength: 0.7,
-                            },
-                        ),
-                        (0.0, routine::Event::ForceDiameter),
-                        (
-                            0.0,
-                            routine::Event::Constriction {
-                                i: 1,
-                                strength: -5.0,
-                            },
-                        ),
-                    ],
-                },
-            ],
-            default_routine: 0,
-            time: 0.0,
-            note_off_time: 0.0,
-            benihora: None,
-            voice_manager: VoiceManager::new(),
-            routine_runtime: Runtime::new(),
-        }
-    }
-
-    pub fn process(&mut self, dtime: f64) -> f64 {
-        let benihora = self.benihora.as_mut().unwrap();
-        self.routine_runtime.process(dtime, |e| match e {
-            routine::Event::Tongue { i, speed } => {
-                benihora.tract.tongue_target = (self.tongue_poses[i].0, self.tongue_poses[i].1);
-                if let Some(speed) = speed {
-                    benihora.tract.speed = speed;
-                }
-            }
-            routine::Event::Constriction { i, strength } => {
-                let diameter = self.other_constrictions[i].1 * (1.0 - strength);
-                benihora.benihora.tract.source.other_constrictions[i].1 = diameter;
-            }
-            routine::Event::Velum { openness } => {
-                benihora
-                    .benihora
-                    .tract
-                    .set_velum_target(0.01 + (0.4 - 0.01) * openness);
-            }
-            routine::Event::Pitch { value } => {
-                benihora.frequency.pitchbend = value;
-            }
-            routine::Event::Sound { sound } => {
-                benihora.sound = sound;
-            }
-            routine::Event::ForceDiameter => {
-                benihora.benihora.tract.update_diameter();
-                benihora.benihora.tract.current_diameter =
-                    benihora.benihora.tract.target_diameter.clone();
-            }
-        });
-
-        benihora.process(&self.benihora_params)
-    }
-
-    pub fn handle_event(&mut self, time: f64, event: &NoteEvent<()>) {
-        let base = 0;
-        #[allow(unused_variables)]
-        match event {
-            NoteEvent::NoteOn {
-                channel,
-                note,
-                velocity,
-                ..
-            } => {
-                self.ensure_other_constriction();
-                let benihora = self.benihora.as_mut().unwrap();
-                if (base..base + self.tongue_poses.len() as u8).contains(note) {
-                    let (index, diameter) = self.tongue_poses[*note as usize - base as usize];
-                    benihora.tract.tongue_target =
-                        benihora.benihora.tract.source.tongue_clamp(index, diameter);
-                    return;
-                }
-                let base = base + self.tongue_poses.len() as u8;
-                if (base..base + self.other_constrictions.len() as u8).contains(note) {
-                    let i = *note as usize - base as usize;
-                    let diameter = self.other_constrictions[i].1 * (1.0 - *velocity as f64);
-                    benihora.benihora.tract.source.other_constrictions[i].1 = diameter;
-                    benihora.benihora.tract.update_diameter();
-                    return;
-                }
-                let base = base + self.other_constrictions.len() as u8;
-                if *note == base {
-                    benihora.benihora.tract.set_velum_target(0.4);
-                    return;
-                }
-                let base = base + 1;
-                if *note < base + self.routines.len() as u8 {
-                    self.routine_runtime
-                        .push_routine(&self.routines[(*note - base) as usize]);
-                    return;
-                }
-
-                let frequency_reset_time = 0.25;
-                let muted = benihora.intensity.get() < 0.01
-                    && self.note_off_time + frequency_reset_time < time;
-                self.voice_manager.noteon(*note);
-                if let Some(note) = self.voice_manager.get_voice() {
-                    benihora
-                        .frequency
-                        .set(440.0 * 2.0f64.powf((note as f64 - 69.0) / 12.0), muted);
-                    benihora.set_tenseness(*velocity as f64);
-                    benihora.sound = true;
-                    if (1..=self.routines.len()).contains(&self.default_routine) {
-                        self.routine_runtime
-                            .push_routine(&self.routines[self.default_routine - 1]);
-                    }
-                }
-            }
-            NoteEvent::NoteOff {
-                channel,
-                note,
-                velocity,
-                ..
-            } => {
-                let benihora = self.benihora.as_mut().unwrap();
-                let base = base + self.tongue_poses.len() as u8;
-                if (base..base + self.other_constrictions.len() as u8).contains(note) {
-                    let i = *note as usize - base as usize;
-                    benihora.benihora.tract.source.other_constrictions[i].1 = 10.0;
-                    benihora.benihora.tract.update_diameter();
-                    return;
-                }
-                let base = base + self.other_constrictions.len() as u8;
-                if *note == base {
-                    benihora.benihora.tract.set_velum_target(0.01);
-                    return;
-                }
-                let base = base + 1;
-                if *note < base + self.routines.len() as u8 {
-                    return;
-                }
-
-                self.voice_manager.noteoff(*note);
-                if let Some(note) = self.voice_manager.get_voice() {
-                    benihora
-                        .frequency
-                        .set(440.0 * 2.0f64.powf((note as f64 - 69.0) / 12.0), false);
-                    benihora.sound = true;
-                } else {
-                    benihora.sound = false;
-                    self.note_off_time = time;
-                }
-            }
-            NoteEvent::PolyPressure {
-                channel,
-                note,
-                pressure,
-                ..
-            } => {} // = aftertouch
-            NoteEvent::MidiChannelPressure {
-                timing,
-                channel,
-                pressure,
-            } => {} // = channel aftertouch
-            NoteEvent::MidiPitchBend {
-                timing,
-                channel,
-                value,
-            } => {
-                let pitchbend = 2.0f64.powf((*value as f64 * 2.0 - 1.0) / 12.0);
-                self.benihora.as_mut().unwrap().frequency.pitchbend = pitchbend;
-            }
-            NoteEvent::MidiCC {
-                timing,
-                channel,
-                cc,
-                value,
-            } => {}
-            NoteEvent::MidiProgramChange {
-                timing,
-                channel,
-                program,
-            } => {}
-            _ => {}
-        }
-    }
-
-    pub fn ensure_other_constriction(&mut self) {
-        let benihora = self.benihora.as_mut().unwrap();
-        if benihora
-            .benihora
-            .tract
-            .source
-            .other_constrictions
-            .is_empty()
-        {
-            benihora.benihora.tract.source.other_constrictions = self
-                .other_constrictions
-                .iter()
-                .map(|x| (x.0, 10.0))
-                .collect();
-        }
-    }
 }
 
 struct MyPlugin {
@@ -293,9 +31,13 @@ struct MyPluginParams {
     pub gain: FloatParam,
     #[id = "vibrato_amount"]
     pub vibrato_amount: FloatParam,
+    #[id = "tongue_x"]
+    pub tongue_x: FloatParam,
+    #[id = "tongue_y"]
+    pub tongue_y: FloatParam,
 
     #[persist = "synth"]
-    pub synth: Arc<Mutex<Synth>>,
+    pub synth: Arc<Mutex<synth::Synth>>,
 }
 
 impl Default for MyPlugin {
@@ -331,7 +73,21 @@ impl Default for MyPluginParams {
                 FloatRange::Linear { min: 0.0, max: 0.1 },
             ),
 
-            synth: Arc::new(Mutex::new(Synth::new())),
+            tongue_x: FloatParam::new(
+                "Tongue X",
+                DEFAULT_TONGUE.0 as f32,
+                FloatRange::Linear {
+                    min: 12.0,
+                    max: 28.0,
+                },
+            ),
+            tongue_y: FloatParam::new(
+                "Tongue Y",
+                DEFAULT_TONGUE.1 as f32,
+                FloatRange::Linear { min: 2.0, max: 4.0 },
+            ),
+
+            synth: Arc::new(Mutex::new(synth::Synth::new())),
         }
     }
 }
@@ -417,6 +173,12 @@ impl Plugin for MyPlugin {
         for mut channel_samples in buffer.iter_samples() {
             synth.benihora_params.vibrato_amount =
                 self.params.vibrato_amount.smoothed.next() as f64;
+            if synth.tongue_control == synth::Control::Host {
+                synth.benihora.as_mut().unwrap().tract.tongue_target.0 =
+                    self.params.tongue_x.smoothed.next() as f64;
+                synth.benihora.as_mut().unwrap().tract.tongue_target.1 =
+                    self.params.tongue_y.smoothed.next() as f64;
+            }
 
             let current_time = synth.time;
 
