@@ -38,6 +38,7 @@ pub struct Params {
     pub wobble_amount: f64,
     pub vibrato_amount: f64,
     pub vibrato_frequency: f64,
+    pub tenseness_wobble_amount: f64,
     pub aspiration_level: f64,
 }
 
@@ -50,6 +51,7 @@ impl Params {
             wobble_amount: 0.1,
             vibrato_amount: 0.005,
             vibrato_frequency: 6.0,
+            tenseness_wobble_amount: 1.0,
             aspiration_level: 1.0,
         }
     }
@@ -83,6 +85,8 @@ impl BenihoraManaged {
     }
 
     pub fn process(&mut self, params: &Params) -> f64 {
+        self.tenseness.wobble_amount = params.tenseness_wobble_amount;
+
         if self.update_timer.overflowed() {
             self.frequency.update(
                 self.update_timer.interval,

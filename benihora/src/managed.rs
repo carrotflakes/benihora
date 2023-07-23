@@ -114,6 +114,7 @@ pub struct Tenseness {
     new_tenseness: F,
     pub target_tenseness: F,
     wiggles: [Wiggle; 2],
+    pub wobble_amount: F,
 }
 
 impl Tenseness {
@@ -126,14 +127,15 @@ impl Tenseness {
                 Wiggle::new(dtime, 0.46 * 5.0, seed + 1),
                 Wiggle::new(dtime, 0.36 * 5.0, seed + 2),
             ],
+            wobble_amount: 1.0,
         }
     }
 
     pub fn update(&mut self) {
         self.old_tenseness = self.new_tenseness;
         self.new_tenseness = self.target_tenseness
-            + 0.05 * self.wiggles[0].process()
-            + 0.025 * self.wiggles[1].process();
+            + (0.05 * self.wiggles[0].process() + 0.025 * self.wiggles[1].process())
+                * self.wobble_amount;
         self.new_tenseness = self.new_tenseness.clamp(0.0, 1.0);
     }
 

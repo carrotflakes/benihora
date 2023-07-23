@@ -6,7 +6,6 @@ mod voice_manager;
 mod waveform_recorder;
 
 use benihora::tract::DEFAULT_TONGUE;
-use benihora_managed::BenihoraManaged;
 use nih_plug::prelude::*;
 use nih_plug_egui::{create_egui_editor, EguiState};
 use std::{
@@ -51,7 +50,7 @@ impl Default for MyPlugin {
 impl Default for MyPluginParams {
     fn default() -> Self {
         Self {
-            editor_state: EguiState::from_size(300, 180),
+            editor_state: EguiState::from_size(320, 210),
 
             gain: FloatParam::new(
                 "Gain",
@@ -157,14 +156,7 @@ impl Plugin for MyPlugin {
         let mut synth = self.params.synth.lock().unwrap();
 
         let sample_rate = context.transport().sample_rate as f64;
-        if synth.benihora.is_none() {
-            synth.benihora = Some(BenihoraManaged::new(
-                synth.sound_speed,
-                sample_rate,
-                1.0,
-                synth.seed,
-            ));
-        }
+        synth.ensure_benihora(sample_rate);
 
         let mut count = 0;
         let mut event = context.next_event();

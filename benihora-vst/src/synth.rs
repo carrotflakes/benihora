@@ -28,8 +28,7 @@ pub struct Synth {
     pub routine_runtime: Runtime,
 }
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Control {
     Host,
     Internal,
@@ -70,6 +69,7 @@ impl Synth {
                 },
                 Routine {
                     events: vec![
+                        (0.0, routine::Event::Sound { sound: false }),
                         (
                             0.0,
                             routine::Event::Constriction {
@@ -85,6 +85,7 @@ impl Synth {
                                 strength: -5.0,
                             },
                         ),
+                        (0.01, routine::Event::Sound { sound: true }),
                     ],
                 },
             ],
@@ -143,7 +144,6 @@ impl Synth {
                 velocity,
                 ..
             } => {
-                self.ensure_other_constriction();
                 let benihora = self.benihora.as_mut().unwrap();
                 if (base..base + self.tongue_poses.len() as u8).contains(note) {
                     let (index, diameter) = self.tongue_poses[*note as usize - base as usize];
@@ -253,6 +253,18 @@ impl Synth {
                 program,
             } => {}
             _ => {}
+        }
+    }
+
+    pub fn ensure_benihora(&mut self, sample_rate: f64) {
+        if self.benihora.is_none() {
+            self.benihora = Some(BenihoraManaged::new(
+                self.sound_speed,
+                sample_rate,
+                1.0,
+                self.seed,
+            ));
+            self.ensure_other_constriction();
         }
     }
 
