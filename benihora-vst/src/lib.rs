@@ -125,7 +125,11 @@ impl Plugin for MyPlugin {
         create_egui_editor(
             self.params.editor_state.clone(),
             self.params.clone(),
-            |_, _| {},
+            |ctx, _| {
+                let mut style = (*ctx.style()).clone();
+                style.spacing.interact_size = nih_plug_egui::egui::vec2(32.0, 16.0);
+                ctx.set_style(style);
+            },
             editor_ui::editor_ui,
         )
     }

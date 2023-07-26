@@ -10,7 +10,7 @@ pub struct Routine {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Event {
     Tongue { i: usize, speed: Option<f64> },
-    Constriction { i: usize, strength: f64 },
+    Constriction { i: usize, strength: Option<f64> },
     Velum { openness: f64 },
     Pitch { value: f64 },
     Sound { sound: bool },

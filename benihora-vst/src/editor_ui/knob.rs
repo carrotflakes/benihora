@@ -1,6 +1,8 @@
 use nih_plug::prelude::{Param, ParamSetter};
 use nih_plug_egui::egui::{self, CursorIcon, Label};
 
+const SIZE: f32 = 18.0;
+
 pub fn knob_ui(
     ui: &mut egui::Ui,
     range: std::ops::Range<f64>,
@@ -9,7 +11,7 @@ pub fn knob_ui(
     name: Option<&str>,
     printer: impl Fn(f64) -> String,
 ) -> egui::Response {
-    let desired_size = egui::vec2(ui.spacing().interact_size.y, ui.spacing().interact_size.y);
+    let desired_size = egui::vec2(SIZE, SIZE);
 
     let (rect, mut response) = ui.allocate_exact_size(desired_size, egui::Sense::drag());
 
@@ -99,7 +101,7 @@ pub fn knob_param<'a, P: Param>(
     setter: &'a ParamSetter<'a>,
 ) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
-        let desired_size = egui::vec2(ui.spacing().interact_size.y, ui.spacing().interact_size.y);
+        let desired_size = egui::vec2(SIZE, SIZE);
 
         let (rect, mut response) = ui.allocate_exact_size(desired_size, egui::Sense::drag());
 

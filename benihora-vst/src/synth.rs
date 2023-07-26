@@ -78,7 +78,7 @@ impl Synth {
                             0.0,
                             routine::Event::Constriction {
                                 i: 1,
-                                strength: 0.7,
+                                strength: Some(0.7),
                             },
                         ),
                         (0.0, routine::Event::ForceDiameter),
@@ -86,7 +86,7 @@ impl Synth {
                             0.0,
                             routine::Event::Constriction {
                                 i: 1,
-                                strength: -5.0,
+                                strength: None,
                             },
                         ),
                         (0.01, routine::Event::Sound { sound: true }),
@@ -127,7 +127,11 @@ impl Synth {
                 if self.other_constrictions.len() <= i {
                     return;
                 }
-                let diameter = self.other_constrictions[i].1 * (1.0 - strength);
+                let diameter = if let Some(strength) = strength {
+                    self.other_constrictions[i].1 * (1.0 - strength)
+                } else {
+                    10.0
+                };
                 benihora.benihora.tract.source.other_constrictions[i].1 = diameter;
             }
             routine::Event::Velum { openness } => {

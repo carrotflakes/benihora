@@ -1,4 +1,4 @@
-use nih_plug_egui::egui::{self, DragValue, ScrollArea};
+use nih_plug_egui::egui::{self, DragValue, ScrollArea, Button};
 
 use crate::{
     routine::{Event, Routine},
@@ -15,6 +15,8 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
         .data()
         .get_temp::<Option<usize>>(selected_routine_id)
         .unwrap_or_default();
+    let mut preview_routine = None;
+
     ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
@@ -26,7 +28,11 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                         ui.data()
                             .insert_temp::<Option<usize>>(selected_event_id, None);
                     }
-                    ui.text_edit_singleline(&mut synth.routines[index].name);
+                    // ui.text_edit_singleline(&mut synth.routines[index].name);
+                    ui.label(format!("Routine {}", index + 1));
+                    if ui.button("▶").clicked() {
+                        preview_routine = Some(index);
+                    }
                 });
                 let selected_event = ui
                     .data()
@@ -82,7 +88,7 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                             0.0,
                             Event::Constriction {
                                 i: 0,
-                                strength: 0.0,
+                                strength: Some(1.0),
                             },
                         ));
                         ui.close_menu();
@@ -115,11 +121,10 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
             } else {
                 let mut remove_routine = None;
                 let mut duplicate_routine = None;
-                let mut preview_routine = None;
                 for (i, r) in synth.routines.iter().enumerate() {
                     ui.horizontal(|ui| {
                         let res = &ui
-                            .link(&format!("{} ({})", &r.name, r.events.len()))
+                            .link(&format!("Routine {} ({})", i + 1, r.events.len()))
                             .context_menu(|ui| {
                                 if ui.button("Duplicate").clicked() {
                                     duplicate_routine = Some(i);
@@ -134,8 +139,17 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                             ui.data().insert_temp(selected_routine_id, Some(i));
                         }
 
-                        if ui.button("▶").clicked() {
+                        if ui.small_button("▶").clicked() {
                             preview_routine = Some(i);
+                        }
+                        if synth.noteon_routine == i + 1 {
+                            if ui.add(Button::new("O").small().fill(ui.style().visuals.selection.bg_fill)).clicked() {
+                                synth.noteon_routine = 0;
+                            }
+                        } else {
+                            if ui.add(Button::new("O").small()).clicked() {
+                                synth.noteon_routine = i + 1;
+                            }
                         }
                     });
                 }
@@ -146,18 +160,20 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                 if let Some(i) = remove_routine {
                     synth.routines.remove(i);
                 }
-                if let Some(i) = preview_routine {
-                    synth.trigger_routine(i);
-                }
 
-                if ui.button("New routine").clicked() {
-                    synth.routines.push(Routine {
-                        name: new_routine_name(synth),
-                        events: Vec::new(),
-                    });
-                }
+                ui.menu_button("New routine", |ui| {
+                    for r in preset() {
+                        if ui.button(&r.name).clicked() {
+                            synth.routines.push(r.clone());
+                            ui.close_menu();
+                        }
+                    }
+                });
             }
         });
+    if let Some(i) = preview_routine {
+        synth.trigger_routine(i);
+    }
 }
 
 fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constrictions: usize) {
@@ -195,7 +211,20 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
                 ui.label("Constriction ID");
             });
 
-            ui.horizontal(|ui| ui.add(knob(0.0..1.0, strength, "Strength")));
+            if let Some(value) = strength {
+                ui.add(knob(0.0..1.0, value, "Strength"))
+                    .context_menu(|ui| {
+                        if ui.button("Release").clicked() {
+                            *strength = None;
+                            ui.close_menu();
+                        }
+                    });
+            }
+            if strength.is_none() {
+                if ui.button("Set").clicked() {
+                    *strength = Some(1.0);
+                }
+            }
         }
         Event::Velum { openness } => {
             ui.add(knob(0.01..0.4, openness, "Openness"));
@@ -210,6 +239,7 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
     }
 }
 
+#[allow(dead_code)]
 fn new_routine_name(synth: &Synth) -> String {
     let mut i = 1;
     loop {
@@ -219,4 +249,68 @@ fn new_routine_name(synth: &Synth) -> String {
         }
         i += 1;
     }
+}
+
+use std::sync::OnceLock;
+
+static PRESET: OnceLock<Vec<Routine>> = OnceLock::new();
+
+fn preset() -> &'static [Routine] {
+    PRESET.get_or_init(|| {
+        vec![
+            Routine {
+                name: "Empty".to_string(),
+                events: vec![],
+            },
+            Routine {
+                name: "Tongue move".to_string(),
+                events: vec![
+                    (
+                        0.0,
+                        Event::Tongue {
+                            i: 0,
+                            speed: Some(200.0),
+                        },
+                    ),
+                    (
+                        0.1,
+                        Event::Tongue {
+                            i: 2,
+                            speed: Some(20.0),
+                        },
+                    ),
+                ],
+            },
+            Routine {
+                name: "Tap".to_string(),
+                events: vec![
+                    (0.0, Event::Sound { sound: false }),
+                    (
+                        0.0,
+                        Event::Constriction {
+                            i: 1,
+                            strength: Some(0.7),
+                        },
+                    ),
+                    (0.0, Event::ForceDiameter),
+                    (
+                        0.0,
+                        Event::Constriction {
+                            i: 1,
+                            strength: None,
+                        },
+                    ),
+                    (0.01, Event::Sound { sound: true }),
+                ],
+            },
+            Routine {
+                name: "Trill".to_string(),
+                events: vec![
+                    (0.0, Event::Pitch { value: 0.0 }),
+                    (0.06, Event::Pitch { value: 1.0 }),
+                    (0.06, Event::Pitch { value: 0.0 }),
+                ],
+            },
+        ]
+    })
 }
