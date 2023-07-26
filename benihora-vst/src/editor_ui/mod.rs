@@ -64,7 +64,7 @@ pub(crate) fn editor_ui(
                 });
                 ui.horizontal(|ui| {
                     ui.add(knob_log(
-                        0.1..1000.0,
+                    1.0..1000.0,
                         &mut synth.benihora_params.intensity_pid.kp,
                         "Intensity kp",
                     ));
@@ -110,11 +110,11 @@ pub(crate) fn editor_ui(
                 });
 
                 ui.horizontal(|ui| {
-                    ui.label("Tract");
+                    ui.label("Tongue");
 
                     {
                         let mut b = synth.tongue_control == Control::Internal;
-                        ui.checkbox(&mut b, "Control");
+                        ui.checkbox(&mut b, "Control").on_hover_text("Checked: The tongue is controlled by this plugin\nUnchecked: The tongue is controlled by the host");
                         synth.tongue_control = if b { Control::Internal } else { Control::Host };
                     }
                 });

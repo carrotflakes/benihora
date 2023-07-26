@@ -1,4 +1,4 @@
-use nih_plug_egui::egui::{self, DragValue, ScrollArea, Button};
+use nih_plug_egui::egui::{self, Button, DragValue, ScrollArea};
 
 use crate::{
     routine::{Event, Routine},
@@ -47,7 +47,7 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                                     .speed(0.01)
                                     .clamp_range(0.0..=10.0),
                             );
-                            let res = ui.link(format!("{:?}", (ev.1).kind())).context_menu(|ui| {
+                            let res = ui.link(format!("{}", (ev.1).name())).context_menu(|ui| {
                                 if ui.button("Remove").clicked() {
                                     remove_event = Some(ev as *mut _);
                                     ui.close_menu();
@@ -117,10 +117,17 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                             .push((0.0, Event::ForceDiameter));
                         ui.close_menu();
                     }
+                    if ui.button("Random tongue").clicked() {
+                        synth.routines[index]
+                            .events
+                            .push((0.0, Event::RandomTangue));
+                        ui.close_menu();
+                    }
                 });
             } else {
                 let mut remove_routine = None;
                 let mut duplicate_routine = None;
+                let mut merge = None;
                 for (i, r) in synth.routines.iter().enumerate() {
                     ui.horizontal(|ui| {
                         let res = &ui
@@ -134,6 +141,18 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                                     remove_routine = Some(i);
                                     ui.close_menu();
                                 }
+                                for (j, _) in synth.routines.iter().enumerate() {
+                                    if i == j {
+                                        continue;
+                                    }
+                                    if ui
+                                        .button(&format!("Merge with Routine {}", j + 1,))
+                                        .clicked()
+                                    {
+                                        merge = Some((i, j));
+                                        ui.close_menu();
+                                    }
+                                }
                             });
                         if res.clicked() {
                             ui.data().insert_temp(selected_routine_id, Some(i));
@@ -143,7 +162,14 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                             preview_routine = Some(i);
                         }
                         if synth.noteon_routine == i + 1 {
-                            if ui.add(Button::new("O").small().fill(ui.style().visuals.selection.bg_fill)).clicked() {
+                            if ui
+                                .add(
+                                    Button::new("O")
+                                        .small()
+                                        .fill(ui.style().visuals.selection.bg_fill),
+                                )
+                                .clicked()
+                            {
                                 synth.noteon_routine = 0;
                             }
                         } else {
@@ -159,6 +185,11 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                 }
                 if let Some(i) = remove_routine {
                     synth.routines.remove(i);
+                }
+                if let Some((i, j)) = merge {
+                    let mut merged = synth.routines[i].clone();
+                    merged.merge(&synth.routines[j]);
+                    synth.routines.push(merged);
                 }
 
                 ui.menu_button("New routine", |ui| {
@@ -236,6 +267,7 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
             ui.checkbox(sound, "Sound");
         }
         Event::ForceDiameter => {}
+        Event::RandomTangue => {}
     }
 }
 
@@ -310,6 +342,10 @@ fn preset() -> &'static [Routine] {
                     (0.06, Event::Pitch { value: 1.0 }),
                     (0.06, Event::Pitch { value: 0.0 }),
                 ],
+            },
+            Routine {
+                name: "Random tongue".to_string(),
+                events: vec![(0.0, Event::RandomTangue)],
             },
         ]
     })

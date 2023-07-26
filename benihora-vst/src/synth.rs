@@ -28,6 +28,8 @@ pub struct Synth {
     pub routine_runtime: Runtime,
     #[serde(skip)]
     reset_required: bool,
+    #[serde(skip)]
+    random_tongue: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -101,6 +103,7 @@ impl Synth {
             routine_runtime: Runtime::new(),
             tongue_control: Control::Host,
             reset_required: true,
+            random_tongue: 1,
         }
     }
 
@@ -150,6 +153,13 @@ impl Synth {
                 benihora.benihora.tract.update_diameter();
                 benihora.benihora.tract.current_diameter =
                     benihora.benihora.tract.target_diameter.clone();
+            }
+            routine::Event::RandomTangue => {
+                let seed = &mut self.random_tongue;
+                *seed = seed.overflowing_mul(48271).0 % ((1 << 31) - 1);
+
+                benihora.tract.tongue_target =
+                    self.tongue_poses[*seed as usize % self.tongue_poses.len()];
             }
         });
 
@@ -285,6 +295,7 @@ impl Synth {
                 self.seed,
             ));
             self.ensure_other_constriction();
+            self.random_tongue = self.seed + 1;
             self.reset_required = false;
         }
     }

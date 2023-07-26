@@ -1,10 +1,30 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Routine {
     pub name: String,
     pub events: Vec<(f64, Event)>,
+}
+
+impl Routine {
+    pub fn merge(&mut self, other: &Self) {
+        let mut events = other.events.clone();
+        let mut merged = Vec::new();
+
+        while !self.events.is_empty() && !events.is_empty() {
+            if self.events[0].0 < events[0].0 {
+                events[0].0 -= self.events[0].0;
+                merged.push(self.events.remove(0));
+            } else {
+                self.events[0].0 -= events[0].0;
+                merged.push(events.remove(0));
+            }
+        }
+
+        merged.extend(self.events.drain(..));
+        merged.extend(events.drain(..));
+        self.events = merged;
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -15,9 +35,22 @@ pub enum Event {
     Pitch { value: f64 },
     Sound { sound: bool },
     ForceDiameter,
+    RandomTangue,
 }
 
 impl Event {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Event::Tongue { .. } => "Tongue",
+            Event::Constriction { .. } => "Constriction",
+            Event::Velum { .. } => "Velum",
+            Event::Pitch { .. } => "Pitch",
+            Event::Sound { .. } => "Sound",
+            Event::ForceDiameter => "Force Diameter",
+            Event::RandomTangue => "Random Tongue",
+        }
+    }
+
     pub fn kind(&self) -> EventKind {
         match self {
             Event::Tongue { .. } => EventKind::Tongue,
@@ -26,6 +59,7 @@ impl Event {
             Event::Pitch { .. } => EventKind::Pitch,
             Event::Sound { .. } => EventKind::Sound,
             Event::ForceDiameter => EventKind::ForceDiameter,
+            Event::RandomTangue => EventKind::Tongue,
         }
     }
 }
