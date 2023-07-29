@@ -14,6 +14,7 @@ pub struct Synth {
     pub other_constrictions: Vec<(f64, f64)>,
     pub routines: Vec<Routine>,
     pub noteon_routine: usize,
+    pub noteoff_routine: usize,
     pub tongue_control: Control,
 
     #[serde(skip)]
@@ -96,6 +97,7 @@ impl Synth {
                 },
             ],
             noteon_routine: 0,
+            noteoff_routine: 0,
             time: 0.0,
             note_off_time: 0.0,
             benihora: None,
@@ -193,7 +195,10 @@ impl Synth {
                 }
                 let base = base + self.other_constrictions.len() as u8;
                 if *note == base {
-                    benihora.benihora.tract.set_velum_target(0.4);
+                    benihora
+                        .benihora
+                        .tract
+                        .set_velum_target(0.01 + (0.4 - 0.01) * *velocity as f64);
                     return;
                 }
                 let base = base + 1;
@@ -250,6 +255,9 @@ impl Synth {
                 } else {
                     benihora.sound = false;
                     self.note_off_time = time;
+                    if (1..=self.routines.len()).contains(&self.noteoff_routine) {
+                        self.trigger_routine(self.noteoff_routine - 1);
+                    }
                 }
             }
             NoteEvent::PolyPressure {

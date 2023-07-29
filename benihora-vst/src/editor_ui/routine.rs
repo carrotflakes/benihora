@@ -96,7 +96,7 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                     if ui.button("Velum").clicked() {
                         synth.routines[index]
                             .events
-                            .push((0.0, Event::Velum { openness: 0.4 }));
+                            .push((0.0, Event::Velum { openness: 1.0 }));
                         ui.close_menu();
                     }
                     if ui.button("Pitch").clicked() {
@@ -164,7 +164,7 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                         if synth.noteon_routine == i + 1 {
                             if ui
                                 .add(
-                                    Button::new("O")
+                                    Button::new("D")
                                         .small()
                                         .fill(ui.style().visuals.selection.bg_fill),
                                 )
@@ -173,8 +173,24 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                                 synth.noteon_routine = 0;
                             }
                         } else {
-                            if ui.add(Button::new("O").small()).clicked() {
+                            if ui.add(Button::new("D").small()).clicked() {
                                 synth.noteon_routine = i + 1;
+                            }
+                        }
+                        if synth.noteoff_routine == i + 1 {
+                            if ui
+                                .add(
+                                    Button::new("U")
+                                        .small()
+                                        .fill(ui.style().visuals.selection.bg_fill),
+                                )
+                                .clicked()
+                            {
+                                synth.noteoff_routine = 0;
+                            }
+                        } else {
+                            if ui.add(Button::new("U").small()).clicked() {
+                                synth.noteoff_routine = i + 1;
                             }
                         }
                     });
@@ -211,7 +227,7 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
     match ev {
         Event::Tongue { i, speed } => {
             ui.horizontal(|ui| {
-                ui.add(DragValue::new(i).clamp_range(0..=tongue_poses));
+                ui.add(DragValue::new(i).clamp_range(0..=tongue_poses - 1));
                 ui.label("Tongue ID");
             });
 
@@ -238,7 +254,7 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
         }
         Event::Constriction { i, strength } => {
             ui.horizontal(|ui| {
-                ui.add(DragValue::new(i).clamp_range(0..=other_constrictions));
+                ui.add(DragValue::new(i).clamp_range(0..=other_constrictions - 1));
                 ui.label("Constriction ID");
             });
 
@@ -258,7 +274,7 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
             }
         }
         Event::Velum { openness } => {
-            ui.add(knob(0.01..0.4, openness, "Openness"));
+            ui.add(knob(0.0..1.0, openness, "Openness"));
         }
         Event::Pitch { value } => {
             ui.add(knob(-12.0..12.0, value, "Pitch"));
@@ -333,6 +349,40 @@ fn preset() -> &'static [Routine] {
                         },
                     ),
                     (0.01, Event::Sound { sound: true }),
+                ],
+            },
+            Routine {
+                name: "Nasal".to_string(),
+                events: vec![
+                    (0.0, Event::Velum { openness: 1.0 }),
+                    (
+                        0.0,
+                        Event::Constriction {
+                            i: 0,
+                            strength: Some(1.0),
+                        },
+                    ),
+                    (0.2, Event::Velum { openness: 0.0 }),
+                    (
+                        0.0,
+                        Event::Constriction {
+                            i: 0,
+                            strength: None,
+                        },
+                    ),
+                ],
+            },
+            Routine {
+                name: "Humming".to_string(),
+                events: vec![
+                    (0.0, Event::Velum { openness: 1.0 }),
+                    (
+                        0.0,
+                        Event::Constriction {
+                            i: 0,
+                            strength: Some(1.0),
+                        },
+                    ),
                 ],
             },
             Routine {

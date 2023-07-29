@@ -92,7 +92,7 @@ impl Default for MyPluginParams {
 }
 
 impl Plugin for MyPlugin {
-    const NAME: &'static str = "benihora";
+    const NAME: &'static str = "Benihora";
     const VENDOR: &'static str = "carrotflakes";
     const URL: &'static str = env!("CARGO_PKG_HOMEPAGE");
     const EMAIL: &'static str = "carrotflakes@gmail.com";
@@ -197,7 +197,7 @@ impl Plugin for MyPlugin {
 }
 
 impl ClapPlugin for MyPlugin {
-    const CLAP_ID: &'static str = "benihora";
+    const CLAP_ID: &'static str = "Benihora";
     const CLAP_DESCRIPTION: Option<&'static str> = Some("");
     const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
     const CLAP_SUPPORT_URL: Option<&'static str> = None;

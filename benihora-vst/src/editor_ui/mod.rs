@@ -3,10 +3,13 @@ mod routine;
 mod tract;
 
 use self::knob::{knob, knob_log, knob_param};
-use crate::{synth::Control, MyPluginParams, FFT_PLANNER};
+use crate::{
+    synth::{Control, Synth},
+    MyPluginParams, FFT_PLANNER,
+};
 use benihora::tract::Tract;
 use nih_plug::prelude::*;
-use nih_plug_egui::egui;
+use nih_plug_egui::egui::{self, ScrollArea};
 use rustfft::num_complex::Complex32;
 use std::sync::Arc;
 
@@ -174,12 +177,13 @@ pub(crate) fn editor_ui(
                     "Glottis plot",
                     "Glottis waveform",
                     "Routines",
+                    "Key bindings",
                     "Frequency response",
                 ][view_mode];
                 if ui.link(view_mode_name).clicked() {
                     let data = &mut ui.data();
                     let view = data.get_persisted_mut_or_default::<usize>(view_id);
-                    *view = (*view + 1) % 4;
+                    *view = (*view + 1) % 5;
                 }
 
                 match view_mode {
@@ -206,6 +210,9 @@ pub(crate) fn editor_ui(
                         routine::show_routines(ui, &mut synth);
                     }
                     4 => {
+                        show_key_bindings(ui, &mut synth);
+                    }
+                    5 => {
                         show_frequency_response(
                             ui,
                             &benihora_tract_frequency_response(
@@ -340,4 +347,27 @@ pub fn benihora_tract_frequency_response(tract: &Tract) -> Vec<f32> {
         .map(|v| v / (res as f32).sqrt())
         .collect::<Vec<_>>();
     buf
+}
+
+fn show_key_bindings(ui: &mut egui::Ui, synth: &mut Synth) {
+    ScrollArea::vertical()
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            let mut n = 0;
+            for (i, _) in synth.tongue_poses.iter().enumerate() {
+                ui.label(format!("{:>3} Tongue {}", n, i + 1));
+                n += 1;
+            }
+            for (i, _) in synth.other_constrictions.iter().enumerate() {
+                ui.label(format!("{:>3} Constriction {}", n, i + 1));
+                n += 1;
+            }
+            ui.label(format!("{:>3} Velum", n));
+            n += 1;
+            for (i, _) in synth.routines.iter().enumerate() {
+                ui.label(format!("{:>3} Routine {}", n, i + 1));
+                n += 1;
+            }
+            ui.label("...");
+        });
 }
