@@ -54,16 +54,8 @@ pub(crate) fn editor_ui(
                         "Frequency kd",
                     ));
                     ui.add(knob_param(&state.vibrato_amount, setter));
-                    ui.add(knob_log(
-                        0.1..20.0,
-                        &mut synth.benihora_params.vibrato_frequency,
-                        "Vibrato frequency",
-                    ));
-                    ui.add(knob(
-                        0.0..5.0,
-                        &mut synth.benihora_params.wobble_amount,
-                        "Frequency wobble",
-                    ));
+                    ui.add(knob_param(&state.vibrato_rate, setter));
+                    ui.add(knob_param(&state.frequency_wobble, setter));
                 });
                 ui.horizontal(|ui| {
                     ui.add(knob_log(
@@ -81,11 +73,7 @@ pub(crate) fn editor_ui(
                         &mut synth.benihora_params.intensity_pid.kd,
                         "Intensity kd",
                     ));
-                    ui.add(knob(
-                        0.0..5.0,
-                        &mut synth.benihora_params.tenseness_wobble_amount,
-                        "Tensness wobble",
-                    ))
+                    ui.add(knob_param(&state.tenseness_wobble, setter));
                 });
                 ui.horizontal(|ui| {
                     ui.add(knob(

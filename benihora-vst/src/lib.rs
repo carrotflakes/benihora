@@ -30,6 +30,12 @@ struct MyPluginParams {
     pub gain: FloatParam,
     #[id = "vibrato_amount"]
     pub vibrato_amount: FloatParam,
+    #[id = "vibrato_rate"]
+    pub vibrato_rate: FloatParam,
+    #[id = "frequency_wobble"]
+    pub frequency_wobble: FloatParam,
+    #[id = "tenseness_wobble"]
+    pub tenseness_wobble: FloatParam,
     #[id = "tongue_x"]
     pub tongue_x: FloatParam,
     #[id = "tongue_y"]
@@ -70,6 +76,25 @@ impl Default for MyPluginParams {
                 "Vibrato Amount",
                 0.0,
                 FloatRange::Linear { min: 0.0, max: 0.1 },
+            ),
+            vibrato_rate: FloatParam::new(
+                "Vibrato Rate",
+                6.0,
+                FloatRange::Skewed {
+                    min: 0.1,
+                    max: 20.0,
+                    factor: 1.0,
+                },
+            ),
+            frequency_wobble: FloatParam::new(
+                "Frequency Wobble",
+                0.1,
+                FloatRange::Linear { min: 0.0, max: 5.0 },
+            ),
+            tenseness_wobble: FloatParam::new(
+                "Tenseness Wobble",
+                1.0,
+                FloatRange::Linear { min: 0.0, max: 5.0 },
             ),
 
             tongue_x: FloatParam::new(
@@ -169,6 +194,11 @@ impl Plugin for MyPlugin {
         for mut channel_samples in buffer.iter_samples() {
             synth.benihora_params.vibrato_amount =
                 self.params.vibrato_amount.smoothed.next() as f64;
+            synth.benihora_params.vibrato_rate = self.params.vibrato_rate.smoothed.next() as f64;
+            synth.benihora_params.frequency_wobble_amount =
+                self.params.frequency_wobble.smoothed.next() as f64;
+            synth.benihora_params.tenseness_wobble_amount =
+                self.params.tenseness_wobble.smoothed.next() as f64;
             if synth.tongue_control == synth::Control::Host {
                 synth.benihora.as_mut().unwrap().tract.tongue_target.0 =
                     self.params.tongue_x.smoothed.next() as f64;

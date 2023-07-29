@@ -35,9 +35,9 @@ pub struct Params {
     pub always_sound: bool,
     pub frequency_pid: pid_controller::PIDParam,
     pub intensity_pid: pid_controller::PIDParam,
-    pub wobble_amount: f64,
+    pub frequency_wobble_amount: f64,
     pub vibrato_amount: f64,
-    pub vibrato_frequency: f64,
+    pub vibrato_rate: f64,
     pub tenseness_wobble_amount: f64,
     pub aspiration_level: f64,
 }
@@ -48,9 +48,9 @@ impl Params {
             always_sound: false,
             frequency_pid: pid_controller::PIDParam::new(50.0, 20.0, 0.0),
             intensity_pid: pid_controller::PIDParam::new(10.0, 100.0, 0.0), // recomend kd = 0.0
-            wobble_amount: 0.1,
+            frequency_wobble_amount: 0.1,
             vibrato_amount: 0.005,
-            vibrato_frequency: 6.0,
+            vibrato_rate: 6.0,
             tenseness_wobble_amount: 1.0,
             aspiration_level: 1.0,
         }
@@ -90,9 +90,9 @@ impl BenihoraManaged {
         if self.update_timer.overflowed() {
             self.frequency.update(
                 self.update_timer.interval,
-                params.wobble_amount,
+                params.frequency_wobble_amount,
                 params.vibrato_amount,
-                params.vibrato_frequency,
+                params.vibrato_rate,
                 &params.frequency_pid,
             );
             self.tenseness.update();
