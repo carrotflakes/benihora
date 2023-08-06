@@ -189,11 +189,15 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
             Some(Part::Tongue) => {
                 if let Some(pos) = pointer {
                     let pos = from_screen * pos;
-                    benihora.tract.tongue_target = benihora
-                        .benihora
-                        .tract
-                        .source
-                        .tongue_clamp(pos.x as f64, (pos.y - 4.0) as f64);
+                    // benihora.tract.tongue_target = benihora
+                    //     .benihora
+                    //     .tract
+                    //     .source
+                    //     .tongue_clamp(pos.x as f64, (pos.y - 4.0) as f64);
+                    benihora.tract.tongue_target = (
+                        (pos.x as f64).clamp(12.0, 28.0),
+                        ((pos.y - 4.0) as f64).clamp(2.0, 4.0),
+                    );
                 }
             }
             Some(Part::Constriction(ci)) => {
