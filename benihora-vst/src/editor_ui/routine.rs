@@ -1,4 +1,4 @@
-use nih_plug_egui::egui::{self, Button, DragValue, ScrollArea};
+use nih_plug_egui::egui::{self, Button, ComboBox, ScrollArea};
 
 use crate::{
     routine::{Event, Routine},
@@ -33,6 +33,38 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                     if ui.button("▶").clicked() {
                         preview_routine = Some(index);
                     }
+                    if synth.noteon_routine == index + 1 {
+                        if ui
+                            .add(
+                                Button::new("D")
+                                    .small()
+                                    .fill(ui.style().visuals.selection.bg_fill),
+                            )
+                            .clicked()
+                        {
+                            synth.noteon_routine = 0;
+                        }
+                    } else {
+                        if ui.add(Button::new("D").small()).clicked() {
+                            synth.noteon_routine = index + 1;
+                        }
+                    }
+                    if synth.noteoff_routine == index + 1 {
+                        if ui
+                            .add(
+                                Button::new("U")
+                                    .small()
+                                    .fill(ui.style().visuals.selection.bg_fill),
+                            )
+                            .clicked()
+                        {
+                            synth.noteoff_routine = 0;
+                        }
+                    } else {
+                        if ui.add(Button::new("U").small()).clicked() {
+                            synth.noteoff_routine = index + 1;
+                        }
+                    }
                 });
                 let selected_event = ui
                     .data()
@@ -40,34 +72,32 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                     .unwrap_or_default();
                 let mut remove_event = None;
                 for (i, ev) in synth.routines[index].events.iter_mut().enumerate() {
-                    ui.group(|ui| {
-                        ui.horizontal(|ui| {
-                            ui.add(
-                                egui::DragValue::new(&mut ev.0)
-                                    .speed(0.01)
-                                    .clamp_range(0.0..=10.0),
-                            );
-                            let res = ui.link(format!("{}", (ev.1).name())).context_menu(|ui| {
-                                if ui.button("Remove").clicked() {
-                                    remove_event = Some(ev as *mut _);
-                                    ui.close_menu();
-                                }
-                            });
-                            if res.clicked() {
-                                ui.data().insert_temp(selected_event_id, Some(i));
+                    ui.horizontal(|ui| {
+                        ui.add(
+                            egui::DragValue::new(&mut ev.0)
+                                .speed(0.01)
+                                .clamp_range(0.0..=10.0),
+                        );
+                        let res = ui.link(format!("{}", (ev.1).name())).context_menu(|ui| {
+                            if ui.button("Remove").clicked() {
+                                remove_event = Some(ev as *mut _);
+                                ui.close_menu();
                             }
                         });
-
-                        if selected_event != Some(i) {
-                            return;
+                        if res.clicked() {
+                            ui.data().insert_temp(selected_event_id, Some(i));
                         }
+                    });
+
+                    if selected_event == Some(i) {
                         event_ui(
                             &mut ev.1,
                             ui,
                             synth.tongue_poses.len(),
                             synth.other_constrictions.len(),
                         );
-                    });
+                    }
+                    ui.separator();
                 }
 
                 if let Some(ptr) = remove_event {
@@ -76,54 +106,7 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                         .retain(|ev| ev as *const _ != ptr);
                 }
 
-                ui.menu_button("Add event", |ui| {
-                    if ui.button("Tongue").clicked() {
-                        synth.routines[index]
-                            .events
-                            .push((0.0, Event::Tongue { i: 0, speed: None }));
-                        ui.close_menu();
-                    }
-                    if ui.button("Constriction").clicked() {
-                        synth.routines[index].events.push((
-                            0.0,
-                            Event::Constriction {
-                                i: 0,
-                                strength: Some(1.0),
-                            },
-                        ));
-                        ui.close_menu();
-                    }
-                    if ui.button("Velum").clicked() {
-                        synth.routines[index]
-                            .events
-                            .push((0.0, Event::Velum { openness: 1.0 }));
-                        ui.close_menu();
-                    }
-                    if ui.button("Pitch").clicked() {
-                        synth.routines[index]
-                            .events
-                            .push((0.0, Event::Pitch { value: 0.0 }));
-                        ui.close_menu();
-                    }
-                    if ui.button("Sound").clicked() {
-                        synth.routines[index]
-                            .events
-                            .push((0.0, Event::Sound { sound: true }));
-                        ui.close_menu();
-                    }
-                    if ui.button("Force diameter").clicked() {
-                        synth.routines[index]
-                            .events
-                            .push((0.0, Event::ForceDiameter));
-                        ui.close_menu();
-                    }
-                    if ui.button("Random tongue").clicked() {
-                        synth.routines[index]
-                            .events
-                            .push((0.0, Event::RandomTangue));
-                        ui.close_menu();
-                    }
-                });
+                ui.menu_button("Add event", add_event_ui(synth, index));
             } else {
                 let mut remove_routine = None;
                 let mut duplicate_routine = None;
@@ -223,15 +206,69 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
     }
 }
 
+fn add_event_ui<'a>(synth: &'a mut Synth, index: usize) -> impl FnMut(&mut egui::Ui) + 'a {
+    move |ui| {
+        if ui.button("Tongue").clicked() {
+            synth.routines[index]
+                .events
+                .push((0.0, Event::Tongue { i: 0, speed: None }));
+            ui.close_menu();
+        }
+        if ui.button("Constriction").clicked() {
+            synth.routines[index].events.push((
+                0.0,
+                Event::Constriction {
+                    i: 0,
+                    strength: Some(1.0),
+                },
+            ));
+            ui.close_menu();
+        }
+        if ui.button("Velum").clicked() {
+            synth.routines[index]
+                .events
+                .push((0.0, Event::Velum { openness: 1.0 }));
+            ui.close_menu();
+        }
+        if ui.button("Pitch").clicked() {
+            synth.routines[index]
+                .events
+                .push((0.0, Event::Pitch { value: 0.0 }));
+            ui.close_menu();
+        }
+        if ui.button("Sound").clicked() {
+            synth.routines[index]
+                .events
+                .push((0.0, Event::Sound { sound: true }));
+            ui.close_menu();
+        }
+        if ui.button("Force diameter").clicked() {
+            synth.routines[index]
+                .events
+                .push((0.0, Event::ForceDiameter));
+            ui.close_menu();
+        }
+        if ui.button("Random tongue").clicked() {
+            synth.routines[index]
+                .events
+                .push((0.0, Event::RandomTangue));
+            ui.close_menu();
+        }
+    }
+}
+
 fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constrictions: usize) {
     match ev {
         Event::Tongue { i, speed } => {
             ui.horizontal(|ui| {
-                ui.add(DragValue::new(i).clamp_range(0..=tongue_poses - 1));
-                ui.label("Tongue ID");
-            });
+                ComboBox::from_id_source("tongue")
+                    .selected_text(format!("Tongue {}", *i))
+                    .show_ui(ui, |ui| {
+                        for j in 0..tongue_poses {
+                            ui.selectable_value(i, j, format!("Tongue {}", j));
+                        }
+                    });
 
-            ui.horizontal(|ui| {
                 let mut remove_speed = false;
                 if let Some(speed) = speed {
                     ui.add(knob_log(1.0..200.0, speed, "Speed"))
@@ -254,24 +291,29 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
         }
         Event::Constriction { i, strength } => {
             ui.horizontal(|ui| {
-                ui.add(DragValue::new(i).clamp_range(0..=other_constrictions - 1));
-                ui.label("Constriction ID");
-            });
-
-            if let Some(value) = strength {
-                ui.add(knob(0.0..1.0, value, "Strength"))
-                    .context_menu(|ui| {
-                        if ui.button("Release").clicked() {
-                            *strength = None;
-                            ui.close_menu();
+                ComboBox::from_id_source("other_constriction")
+                    .selected_text(format!("Constriction {}", *i))
+                    .show_ui(ui, |ui| {
+                        for j in 0..other_constrictions {
+                            ui.selectable_value(i, j, format!("Constriction {}", j));
                         }
                     });
-            }
-            if strength.is_none() {
-                if ui.button("Set").clicked() {
-                    *strength = Some(1.0);
+
+                if let Some(value) = strength {
+                    ui.add(knob(0.0..1.0, value, "Strength"))
+                        .context_menu(|ui| {
+                            if ui.button("Release").clicked() {
+                                *strength = None;
+                                ui.close_menu();
+                            }
+                        });
                 }
-            }
+                if strength.is_none() {
+                    if ui.button("Set").clicked() {
+                        *strength = Some(1.0);
+                    }
+                }
+            });
         }
         Event::Velum { openness } => {
             ui.add(knob(0.0..1.0, openness, "Openness"));

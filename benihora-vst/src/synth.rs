@@ -103,7 +103,7 @@ impl Synth {
             benihora: None,
             voice_manager: VoiceManager::new(),
             routine_runtime: Runtime::new(),
-            tongue_control: Control::Host,
+            tongue_control: Control::Internal,
             reset_required: true,
             random_tongue: 1,
         }
