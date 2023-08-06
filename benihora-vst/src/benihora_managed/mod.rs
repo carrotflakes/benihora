@@ -35,6 +35,7 @@ pub struct Params {
     pub always_sound: bool,
     pub frequency_pid: pid_controller::PIDParam,
     pub intensity_pid: pid_controller::PIDParam,
+    pub noteon_intensity: f64,
     pub frequency_wobble_amount: f64,
     pub vibrato_amount: f64,
     pub vibrato_rate: f64,
@@ -48,6 +49,7 @@ impl Params {
             always_sound: false,
             frequency_pid: pid_controller::PIDParam::new(50.0, 20.0, 0.0),
             intensity_pid: pid_controller::PIDParam::new(10.0, 100.0, 0.0), // recomend kd = 0.0
+            noteon_intensity: 0.9,
             frequency_wobble_amount: 0.1,
             vibrato_amount: 0.005,
             vibrato_rate: 6.0,
@@ -108,7 +110,7 @@ impl BenihoraManaged {
         let intensity = self.intensity.process(
             &params.intensity_pid,
             if self.sound | params.always_sound {
-                1.0
+                params.noteon_intensity
             } else {
                 0.0
             },

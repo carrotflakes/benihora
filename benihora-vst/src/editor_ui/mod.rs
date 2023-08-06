@@ -39,7 +39,7 @@ pub(crate) fn editor_ui(
                 ui.label("Glottis");
                 ui.horizontal(|ui| {
                     ui.add(knob_log(
-                        0.1..100.0,
+                        1.0..100.0,
                         &mut synth.benihora_params.frequency_pid.kp,
                         "Frequency kp",
                     ));
@@ -58,6 +58,7 @@ pub(crate) fn editor_ui(
                     ui.add(knob_param(&state.frequency_wobble, setter));
                 });
                 ui.horizontal(|ui| {
+                    ui.add(knob(0.0..1.0, &mut synth.benihora_params.noteon_intensity, "Intensity"));
                     ui.add(knob_log(
                     1.0..1000.0,
                         &mut synth.benihora_params.intensity_pid.kp,
