@@ -428,6 +428,19 @@ fn preset() -> &'static [Routine] {
                 ],
             },
             Routine {
+                name: "Humming off".to_string(),
+                events: vec![
+                    (0.0, Event::Velum { openness: 0.0 }),
+                    (
+                        0.0,
+                        Event::Constriction {
+                            i: 0,
+                            strength: None,
+                        },
+                    ),
+                ],
+            },
+            Routine {
                 name: "Trill".to_string(),
                 events: vec![
                     (0.0, Event::Pitch { value: 0.0 }),
