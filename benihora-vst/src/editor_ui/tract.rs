@@ -20,7 +20,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
     } = synth;
     let benihora = benihora.as_mut().unwrap();
 
-    let pointer = ui.input().pointer.hover_pos();
+    let pointer = ui.input(|i| i.pointer.hover_pos());
     let mut hover = None;
 
     let res = egui::Frame::canvas(ui.style()).show(ui, |ui| {
@@ -152,7 +152,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
     let drag_mode_id = ui.make_persistent_id("tract_drag");
     if res.drag_started() {
         let drag_mode = hover.unwrap_or(Part::Tongue);
-        ui.data().insert_temp(drag_mode_id, Some(drag_mode));
+        ui.data_mut(|d| d.insert_temp(drag_mode_id, Some(drag_mode)));
     }
     if res.clicked() {
         match hover {
@@ -169,10 +169,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         }
     }
     if res.drag_released() {
-        let drag_mode = ui
-            .data()
-            .get_temp::<Option<Part>>(drag_mode_id)
-            .unwrap_or(None);
+        let drag_mode = ui.data(|d| d.get_temp::<Option<Part>>(drag_mode_id).unwrap_or(None));
         match drag_mode {
             Some(Part::Constriction(i)) => {
                 benihora.benihora.tract.source.other_constrictions[i].1 = 10.0;
@@ -181,10 +178,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         }
     }
     if res.dragged() {
-        let drag_mode = ui
-            .data()
-            .get_temp::<Option<Part>>(drag_mode_id)
-            .unwrap_or(None);
+        let drag_mode = ui.data(|d| d.get_temp::<Option<Part>>(drag_mode_id).unwrap_or(None));
         match drag_mode {
             Some(Part::Tongue) => {
                 if let Some(pos) = pointer {

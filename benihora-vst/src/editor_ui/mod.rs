@@ -157,9 +157,7 @@ pub(crate) fn editor_ui(
             ui.vertical(|ui| {
                 let view_id = ui.id().with("view");
                 let view_mode = ui
-                    .data()
-                    .get_persisted::<usize>(view_id)
-                    .unwrap_or_default();
+                    .data_mut(|d| d.get_persisted::<usize>(view_id).unwrap_or_default());
 
                 let view_mode_name = [
                     "Tract",
@@ -170,9 +168,10 @@ pub(crate) fn editor_ui(
                     "Frequency response",
                 ][view_mode];
                 if ui.link(view_mode_name).clicked() {
-                    let data = &mut ui.data();
-                    let view = data.get_persisted_mut_or_default::<usize>(view_id);
-                    *view = (*view + 1) % 5;
+                    ui.data_mut(|d| {
+                        let view = d.get_persisted_mut_or_default::<usize>(view_id);
+                        *view = (*view + 1) % 5;
+                    });
                 }
 
                 match view_mode {

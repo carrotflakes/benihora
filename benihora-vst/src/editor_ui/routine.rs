@@ -11,10 +11,10 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
     let id = ui.make_persistent_id("Routines");
     let selected_routine_id = id.with("selected_routine");
     let selected_event_id = id.with("selected_event");
-    let selected = ui
-        .data()
-        .get_temp::<Option<usize>>(selected_routine_id)
-        .unwrap_or_default();
+    let selected = ui.data(|d| {
+        d.get_temp::<Option<usize>>(selected_routine_id)
+            .unwrap_or_default()
+    });
     let mut preview_routine = None;
 
     ScrollArea::vertical()
@@ -23,10 +23,8 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
             if let Some(index) = selected {
                 ui.horizontal(|ui| {
                     if ui.link("List").clicked() {
-                        ui.data()
-                            .insert_temp::<Option<usize>>(selected_routine_id, None);
-                        ui.data()
-                            .insert_temp::<Option<usize>>(selected_event_id, None);
+                        ui.data_mut(|d| d.insert_temp::<Option<usize>>(selected_routine_id, None));
+                        ui.data_mut(|d| d.insert_temp::<Option<usize>>(selected_event_id, None));
                     }
                     // ui.text_edit_singleline(&mut synth.routines[index].name);
                     ui.label(format!("Routine {}", index + 1));
@@ -66,10 +64,10 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                         }
                     }
                 });
-                let selected_event = ui
-                    .data()
-                    .get_temp::<Option<usize>>(selected_event_id)
-                    .unwrap_or_default();
+                let selected_event = ui.data(|d| {
+                    d.get_temp::<Option<usize>>(selected_event_id)
+                        .unwrap_or_default()
+                });
                 let mut remove_event = None;
                 for (i, ev) in synth.routines[index].events.iter_mut().enumerate() {
                     ui.horizontal(|ui| {
@@ -85,7 +83,7 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                             }
                         });
                         if res.clicked() {
-                            ui.data().insert_temp(selected_event_id, Some(i));
+                            ui.data_mut(|d| d.insert_temp(selected_event_id, Some(i)));
                         }
                     });
 
@@ -138,7 +136,7 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
                                 }
                             });
                         if res.clicked() {
-                            ui.data().insert_temp(selected_routine_id, Some(i));
+                            ui.data_mut(|d| d.insert_temp(selected_routine_id, Some(i)));
                         }
 
                         if ui.small_button("▶").clicked() {

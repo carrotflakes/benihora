@@ -5,4 +5,4 @@ edition = "2021"
 homepage = "https://github.com/carrotflakes/benihora"
 
 [dependencies]
-nih_plug_xtask = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+nih_plug_xtask = { git = "https://github.com/robbert-vdh/nih-plug.git", rev = "eb968ba44666d96cb2349ad877fcdcbccb993f8c" }
