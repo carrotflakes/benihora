@@ -1,7 +1,7 @@
 mod pid_controller;
 mod tract;
 
-use std::f64::consts::TAU;
+use std::f32::consts::TAU;
 
 use benihora::{
     lerp,
@@ -22,8 +22,8 @@ pub struct BenihoraManaged {
     pub tract: tract::Tract,
     pub benihora: Benihora,
     update_timer: IntervalTimer,
-    sample_rate: f64,
-    dtime: f64,
+    sample_rate: f32,
+    dtime: f32,
     pub history: Vec<[f32; 5]>,
     pub history_count: usize,
     pub level: f32,
@@ -35,12 +35,12 @@ pub struct Params {
     pub always_sound: bool,
     pub frequency_pid: pid_controller::PIDParam,
     pub intensity_pid: pid_controller::PIDParam,
-    pub noteon_intensity: f64,
-    pub frequency_wobble_amount: f64,
-    pub vibrato_amount: f64,
-    pub vibrato_rate: f64,
-    pub tenseness_wobble_amount: f64,
-    pub aspiration_level: f64,
+    pub noteon_intensity: f32,
+    pub frequency_wobble_amount: f32,
+    pub vibrato_amount: f32,
+    pub vibrato_rate: f32,
+    pub tenseness_wobble_amount: f32,
+    pub aspiration_level: f32,
 }
 
 impl Params {
@@ -60,14 +60,14 @@ impl Params {
 }
 
 impl BenihoraManaged {
-    pub fn new(sound_speed: f64, sample_rate: f64, over_sample: f64, seed: u32) -> Self {
+    pub fn new(sound_speed: f32, sample_rate: f32, over_sample: f32, seed: u32) -> Self {
         let interval = 0.02;
         Self {
             sound: false,
             frequency: Frequency::new(interval, seed, 140.0, 1.0 / interval),
             tenseness: Tenseness::new(interval, seed, 0.6),
             intensity: Intensity::new(sample_rate),
-            loudness: Loudness::new(0.6f64.powf(0.25)),
+            loudness: Loudness::new(0.6f32.powf(0.25)),
             tract: tract::Tract::new(),
             benihora: Benihora::new(sound_speed, sample_rate, over_sample, seed, false),
             update_timer: IntervalTimer::new_overflowed(interval),
@@ -80,13 +80,13 @@ impl BenihoraManaged {
         }
     }
 
-    pub fn set_tenseness(&mut self, tenseness: f64) {
+    pub fn set_tenseness(&mut self, tenseness: f32) {
         let tenseness = tenseness.clamp(0.0, 1.0);
         self.tenseness.target_tenseness = tenseness;
         self.loudness.target = tenseness.powf(0.25);
     }
 
-    pub fn process(&mut self, params: &Params) -> f64 {
+    pub fn process(&mut self, params: &Params) -> f32 {
         self.tenseness.wobble_amount = params.tenseness_wobble_amount;
 
         if self.update_timer.overflowed() {
@@ -122,10 +122,10 @@ impl BenihoraManaged {
         if self.history_count == 0 {
             self.history_count = self.sample_rate as usize / 50;
             self.history.push([
-                frequency as f32,
-                intensity as f32,
-                tenseness as f32,
-                loudness as f32,
+                frequency,
+                intensity,
+                tenseness,
+                loudness,
                 (self.level / self.history_count as f32).sqrt(),
             ]);
             self.level = 0.0;
@@ -155,24 +155,24 @@ impl BenihoraManaged {
 
 pub struct Frequency {
     pid: pid_controller::PIDController,
-    old_frequency: f64,
-    new_frequency: f64,
-    target_frequency: f64,
-    pub pitchbend: f64,
-    phase: f64,
+    old_frequency: f32,
+    new_frequency: f32,
+    target_frequency: f32,
+    pub pitchbend: f32,
+    phase: f32,
 
     wiggles: [Wiggle; 2],
 }
 
 impl Frequency {
-    pub fn new(dtime: f64, seed: u32, frequency: f64, update_rate: f64) -> Self {
+    pub fn new(dtime: f32, seed: u32, frequency: f32, update_rate: f32) -> Self {
         Self {
             pid: pid_controller::PIDController::new(update_rate),
             old_frequency: frequency,
             new_frequency: frequency,
             target_frequency: frequency,
             pitchbend: 1.0,
-            phase: (seed as f64 / 10.0) % 1.0,
+            phase: (seed as f32 / 10.0) % 1.0,
             wiggles: [
                 Wiggle::new(dtime / 4.0, 4.07 * 5.0, seed + 1),
                 Wiggle::new(dtime / 4.0, 2.15 * 5.0, seed + 2),
@@ -180,7 +180,7 @@ impl Frequency {
         }
     }
 
-    pub fn set(&mut self, frequency: f64, reset: bool) {
+    pub fn set(&mut self, frequency: f32, reset: bool) {
         self.target_frequency = frequency;
         if reset {
             self.old_frequency = frequency;
@@ -190,10 +190,10 @@ impl Frequency {
 
     fn update(
         &mut self,
-        dtime: f64,
-        wobble_amount: f64,
-        vibrato_amount: f64,
-        vibrato_frequency: f64,
+        dtime: f32,
+        wobble_amount: f32,
+        vibrato_amount: f32,
+        vibrato_frequency: f32,
         pid: &pid_controller::PIDParam,
     ) {
         let mut vibrato = vibrato_amount * (TAU * self.phase).sin();
@@ -215,19 +215,19 @@ impl Frequency {
         self.new_frequency = self.new_frequency.clamp(10.0, 10000.0);
     }
 
-    pub fn get(&mut self, lambda: f64) -> f64 {
+    pub fn get(&mut self, lambda: f32) -> f32 {
         lerp(self.old_frequency, self.new_frequency, lambda)
     }
 }
 
 pub struct Intensity {
-    value: f64,
-    bias: f64,
+    value: f32,
+    bias: f32,
     pid: pid_controller::PIDController,
 }
 
 impl Intensity {
-    pub fn new(sample_rate: f64) -> Self {
+    pub fn new(sample_rate: f32) -> Self {
         Self {
             value: 0.0,
             bias: -1.0,
@@ -235,11 +235,11 @@ impl Intensity {
         }
     }
 
-    pub fn get(&self) -> f64 {
+    pub fn get(&self) -> f32 {
         self.value
     }
 
-    pub fn process(&mut self, pid: &pid_controller::PIDParam, target: f64) -> f64 {
+    pub fn process(&mut self, pid: &pid_controller::PIDParam, target: f32) -> f32 {
         self.value += self.pid.process(pid, target - self.value) + self.bias * self.pid.dtime;
         self.value = self.value.max(0.0);
         self.value

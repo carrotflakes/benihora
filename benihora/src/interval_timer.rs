@@ -1,13 +1,11 @@
-use crate::F;
-
 pub struct IntervalTimer {
-    pub interval: F,
-    pub time: F,
+    pub interval: f32,
+    pub time: f32,
     pub overflowed: bool,
 }
 
 impl IntervalTimer {
-    pub fn new(interval: F) -> Self {
+    pub fn new(interval: f32) -> Self {
         Self {
             interval,
             time: 0.0,
@@ -15,7 +13,7 @@ impl IntervalTimer {
         }
     }
 
-    pub fn new_overflowed(interval: F) -> Self {
+    pub fn new_overflowed(interval: f32) -> Self {
         Self {
             interval,
             time: 0.0,
@@ -23,7 +21,7 @@ impl IntervalTimer {
         }
     }
 
-    pub fn time(&self) -> F {
+    pub fn time(&self) -> f32 {
         self.time
     }
 
@@ -31,11 +29,11 @@ impl IntervalTimer {
         self.overflowed
     }
 
-    pub fn progress(&self) -> F {
+    pub fn progress(&self) -> f32 {
         self.time / self.interval
     }
 
-    pub fn update(&mut self, dt: F) {
+    pub fn update(&mut self, dt: f32) {
         self.time += dt;
         self.overflowed = self.time >= self.interval;
         self.time %= self.interval;

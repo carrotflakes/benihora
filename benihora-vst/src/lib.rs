@@ -99,7 +99,7 @@ impl Default for MyPluginParams {
 
             tongue_x: FloatParam::new(
                 "Tongue X",
-                DEFAULT_TONGUE.0 as f32,
+                DEFAULT_TONGUE.0,
                 FloatRange::Linear {
                     min: 12.0,
                     max: 28.0,
@@ -107,7 +107,7 @@ impl Default for MyPluginParams {
             ),
             tongue_y: FloatParam::new(
                 "Tongue Y",
-                DEFAULT_TONGUE.1 as f32,
+                DEFAULT_TONGUE.1,
                 FloatRange::Linear { min: 2.0, max: 4.0 },
             ),
 
@@ -184,7 +184,7 @@ impl Plugin for MyPlugin {
     ) -> ProcessStatus {
         let mut synth = self.params.synth.lock().unwrap();
 
-        let sample_rate = context.transport().sample_rate as f64;
+        let sample_rate = context.transport().sample_rate;
         synth.ensure_benihora(sample_rate);
 
         let mut count = 0;
@@ -192,18 +192,17 @@ impl Plugin for MyPlugin {
         let dtime = 1.0 / sample_rate;
 
         for mut channel_samples in buffer.iter_samples() {
-            synth.benihora_params.vibrato_amount =
-                self.params.vibrato_amount.smoothed.next() as f64;
-            synth.benihora_params.vibrato_rate = self.params.vibrato_rate.smoothed.next() as f64;
+            synth.benihora_params.vibrato_amount = self.params.vibrato_amount.smoothed.next();
+            synth.benihora_params.vibrato_rate = self.params.vibrato_rate.smoothed.next();
             synth.benihora_params.frequency_wobble_amount =
-                self.params.frequency_wobble.smoothed.next() as f64;
+                self.params.frequency_wobble.smoothed.next();
             synth.benihora_params.tenseness_wobble_amount =
-                self.params.tenseness_wobble.smoothed.next() as f64;
+                self.params.tenseness_wobble.smoothed.next();
             if synth.tongue_control == synth::Control::Host {
                 synth.benihora.as_mut().unwrap().tract.tongue_target.0 =
-                    self.params.tongue_x.smoothed.next() as f64;
+                    self.params.tongue_x.smoothed.next();
                 synth.benihora.as_mut().unwrap().tract.tongue_target.1 =
-                    self.params.tongue_y.smoothed.next() as f64;
+                    self.params.tongue_y.smoothed.next();
             }
 
             let current_time = synth.time;
@@ -218,7 +217,7 @@ impl Plugin for MyPlugin {
             }
             count += 1;
 
-            *channel_samples.get_mut(0).unwrap() = synth.process(dtime) as f32;
+            *channel_samples.get_mut(0).unwrap() = synth.process(dtime);
             synth.time += dtime;
         }
 

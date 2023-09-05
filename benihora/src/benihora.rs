@@ -2,22 +2,21 @@ use crate::resample::Resample;
 
 use super::glottis::Glottis;
 use super::tract::Tract;
-use super::F;
 
 pub struct Benihora {
     force_turbulence: bool,
-    pub sample_rate: F,
+    pub sample_rate: f32,
     pub glottis: Glottis,
     pub tract: Tract,
     resample: Resample,
-    glottal_output: F,
+    glottal_output: f32,
 }
 
 impl Benihora {
     pub fn new(
-        sound_speed: F,
-        sample_rate: F,
-        over_sample: F,
+        sound_speed: f32,
+        sample_rate: f32,
+        over_sample: f32,
         seed: u32,
         force_turbulence: bool,
     ) -> Self {
@@ -25,7 +24,7 @@ impl Benihora {
 
         let tract_steps = 48000.0 * sound_speed;
         let tract_steps_per_process = ((tract_steps / sample_rate) as usize).max(1);
-        let inner_sample_rate = tract_steps / tract_steps_per_process as F * over_sample;
+        let inner_sample_rate = tract_steps / tract_steps_per_process as f32 * over_sample;
 
         Self {
             force_turbulence,
@@ -37,18 +36,18 @@ impl Benihora {
         }
     }
 
-    pub fn get_glottal_output(&self) -> F {
+    pub fn get_glottal_output(&self) -> f32 {
         self.glottal_output
     }
 
     pub fn process(
         &mut self,
-        frequency: F,
-        tenseness: F,
-        intensity: F,
-        loudness: F,
-        aspiration_level: F,
-    ) -> F {
+        frequency: f32,
+        tenseness: f32,
+        intensity: f32,
+        loudness: f32,
+        aspiration_level: f32,
+    ) -> f32 {
         debug_assert!((1.0..=10000.0).contains(&frequency));
         debug_assert!((0.0..=1.0).contains(&tenseness));
         debug_assert!((0.0..=1.0).contains(&intensity));

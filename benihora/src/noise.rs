@@ -1,19 +1,19 @@
 use biquad::{Biquad, Coefficients, DirectForm2Transposed, ToHertz};
 
-use crate::{rand_f64, F};
+use crate::rand_f32;
 
 pub struct Noise {
     rand: u32,
-    filter: DirectForm2Transposed<F>,
+    filter: DirectForm2Transposed<f32>,
 }
 
 impl Noise {
-    pub fn new(seed: u32, sample_rate: F, frequency: F) -> Self {
+    pub fn new(seed: u32, sample_rate: f32, frequency: f32) -> Self {
         assert!(seed != 0);
         Self {
             rand: seed,
-            filter: DirectForm2Transposed::<F>::new(
-                Coefficients::<F>::from_params(
+            filter: DirectForm2Transposed::<f32>::new(
+                Coefficients::<f32>::from_params(
                     biquad::Type::BandPass,
                     sample_rate.hz(),
                     frequency.hz(),
@@ -24,8 +24,8 @@ impl Noise {
         }
     }
 
-    pub fn process(&mut self) -> F {
-        let x = rand_f64(&mut self.rand);
+    pub fn process(&mut self) -> f32 {
+        let x = rand_f32(&mut self.rand);
         self.filter.run(x * 2.0 - 1.0)
     }
 }

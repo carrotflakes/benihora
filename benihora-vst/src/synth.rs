@@ -7,20 +7,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct Synth {
     // Don't forget to add serde default to new fields
-    pub sound_speed: f64,
+    pub sound_speed: f32,
     pub seed: u32,
     pub benihora_params: BenihoraParams,
-    pub tongue_poses: Vec<(f64, f64)>,
-    pub other_constrictions: Vec<(f64, f64)>,
+    pub tongue_poses: Vec<(f32, f32)>,
+    pub other_constrictions: Vec<(f32, f32)>,
     pub routines: Vec<Routine>,
     pub noteon_routine: usize,
     pub noteoff_routine: usize,
     pub tongue_control: Control,
 
     #[serde(skip)]
-    pub time: f64,
+    pub time: f32,
     #[serde(skip)]
-    pub note_off_time: f64,
+    pub note_off_time: f32,
     #[serde(skip)]
     pub benihora: Option<BenihoraManaged>,
     #[serde(skip)]
@@ -116,7 +116,7 @@ impl Synth {
         self.routine_runtime.push_routine(&self.routines[index]);
     }
 
-    pub fn process(&mut self, dtime: f64) -> f64 {
+    pub fn process(&mut self, dtime: f32) -> f32 {
         let benihora = self.benihora.as_mut().unwrap();
         self.routine_runtime.process(dtime, |e| match e {
             routine::Event::Tongue { i, speed } => {
@@ -146,7 +146,7 @@ impl Synth {
                     .set_velum_target(0.01 + (0.4 - 0.01) * openness);
             }
             routine::Event::Pitch { value } => {
-                benihora.frequency.pitchbend = 2.0f64.powf((value as f64 * 2.0 - 1.0) / 12.0);
+                benihora.frequency.pitchbend = 2.0f32.powf((value as f32 * 2.0 - 1.0) / 12.0);
             }
             routine::Event::Sound { sound } => {
                 benihora.sound = sound;
@@ -168,7 +168,7 @@ impl Synth {
         benihora.process(&self.benihora_params)
     }
 
-    pub fn handle_event(&mut self, time: f64, event: &NoteEvent<()>) {
+    pub fn handle_event(&mut self, time: f32, event: &NoteEvent<()>) {
         let base = 0;
         #[allow(unused_variables)]
         match event {
@@ -188,7 +188,7 @@ impl Synth {
                 let base = base + self.tongue_poses.len() as u8;
                 if (base..base + self.other_constrictions.len() as u8).contains(note) {
                     let i = *note as usize - base as usize;
-                    let diameter = self.other_constrictions[i].1 * (1.0 - *velocity as f64);
+                    let diameter = self.other_constrictions[i].1 * (1.0 - *velocity as f32);
                     benihora.benihora.tract.source.other_constrictions[i].1 = diameter;
                     benihora.benihora.tract.update_diameter();
                     return;
@@ -198,7 +198,7 @@ impl Synth {
                     benihora
                         .benihora
                         .tract
-                        .set_velum_target(0.01 + (0.4 - 0.01) * *velocity as f64);
+                        .set_velum_target(0.01 + (0.4 - 0.01) * *velocity as f32);
                     return;
                 }
                 let base = base + 1;
@@ -214,8 +214,8 @@ impl Synth {
                 if let Some(note) = self.voice_manager.get_voice() {
                     benihora
                         .frequency
-                        .set(440.0 * 2.0f64.powf((note as f64 - 69.0) / 12.0), muted);
-                    benihora.set_tenseness(*velocity as f64);
+                        .set(440.0 * 2.0f32.powf((note as f32 - 69.0) / 12.0), muted);
+                    benihora.set_tenseness(*velocity as f32);
                     benihora.sound = true;
                     if (1..=self.routines.len()).contains(&self.noteon_routine) {
                         self.trigger_routine(self.noteon_routine - 1);
@@ -250,7 +250,7 @@ impl Synth {
                 if let Some(note) = self.voice_manager.get_voice() {
                     benihora
                         .frequency
-                        .set(440.0 * 2.0f64.powf((note as f64 - 69.0) / 12.0), false);
+                        .set(440.0 * 2.0f32.powf((note as f32 - 69.0) / 12.0), false);
                     benihora.sound = true;
                 } else {
                     benihora.sound = false;
@@ -276,7 +276,7 @@ impl Synth {
                 channel,
                 value,
             } => {
-                let pitchbend = 2.0f64.powf((*value as f64 * 2.0 - 1.0) / 12.0);
+                let pitchbend = 2.0f32.powf((*value as f32 * 2.0 - 1.0) / 12.0);
                 self.benihora.as_mut().unwrap().frequency.pitchbend = pitchbend;
             }
             NoteEvent::MidiCC {
@@ -294,7 +294,7 @@ impl Synth {
         }
     }
 
-    pub fn ensure_benihora(&mut self, sample_rate: f64) {
+    pub fn ensure_benihora(&mut self, sample_rate: f32) {
         if self.benihora.is_none() || self.reset_required {
             self.benihora = Some(BenihoraManaged::new(
                 self.sound_speed,

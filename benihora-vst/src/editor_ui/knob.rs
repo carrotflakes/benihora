@@ -5,11 +5,11 @@ const SIZE: f32 = 18.0;
 
 pub fn knob_ui(
     ui: &mut egui::Ui,
-    range: std::ops::Range<f64>,
-    value: &mut f64,
-    default_value: Option<f64>,
+    range: std::ops::Range<f32>,
+    value: &mut f32,
+    default_value: Option<f32>,
     name: Option<&str>,
-    printer: impl Fn(f64) -> String,
+    printer: impl Fn(f32) -> String,
 ) -> egui::Response {
     let desired_size = egui::vec2(SIZE, SIZE);
 
@@ -31,7 +31,7 @@ pub fn knob_ui(
         } else {
             1.0
         };
-        let delta = -response.drag_delta().y as f64 * amount;
+        let delta = -response.drag_delta().y * amount;
         *value = (*value + delta * (range.end - range.start) / 100.0).clamp(range.start, range.end);
         response.mark_changed();
         ui.output_mut(|o| o.cursor_icon = CursorIcon::ResizeVertical);
@@ -51,8 +51,7 @@ pub fn knob_ui(
             .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
         let center = rect.center();
         let a = (*value - range.start) / (range.end - range.start);
-        let a = std::f64::consts::TAU * (0.6 - a * 0.7);
-        let a = a as f32;
+        let a = std::f32::consts::TAU * (0.6 - a * 0.7);
         let v = egui::vec2(a.cos(), -a.sin()) * (radius * 0.75);
         ui.painter()
             .line_segment([center, center + v], visuals.fg_stroke);
@@ -77,25 +76,25 @@ pub fn knob_ui(
 }
 
 pub fn knob<'a>(
-    range: std::ops::Range<f64>,
-    value: &'a mut f64,
+    range: std::ops::Range<f32>,
+    value: &'a mut f32,
     name: &'a str,
 ) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| knob_ui(ui, range, value, None, Some(name), |v| format!("{:.2}", v))
 }
 
 pub fn knob_log<'a>(
-    range: std::ops::Range<f64>,
-    value: &'a mut f64,
+    range: std::ops::Range<f32>,
+    value: &'a mut f32,
     name: &'a str,
 ) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         let mut v = value.log10();
         let range = range.start.log10()..range.end.log10();
         let res = knob_ui(ui, range, &mut v, None, Some(name), |v| {
-            format!("{:.2}", 10.0f64.powf(v))
+            format!("{:.2}", 10.0f32.powf(v))
         });
-        *value = 10.0f64.powf(v);
+        *value = 10.0f32.powf(v);
         res
     }
 }

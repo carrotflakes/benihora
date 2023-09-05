@@ -1,20 +1,18 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
 use crate::{lerp, noise::Noise, wiggle::Wiggle};
 
-use super::F;
-
 pub struct Glottis {
     pub(crate) aspiration_noise: Noise,
-    phase: F,
+    phase: f32,
     waveform: WaveformIntegral,
-    sample_rate: F,
+    sample_rate: f32,
     wiggle: Wiggle,
-    last_integral: F,
+    last_integral: f32,
 }
 
 impl Glottis {
-    pub fn new(sample_rate: F, seed: u32) -> Self {
+    pub fn new(sample_rate: f32, seed: u32) -> Self {
         let waveform = WaveformIntegral::new(&Waveform::new(0.6));
         Self {
             aspiration_noise: Noise::new(seed + 1, sample_rate, 500.0),
@@ -26,18 +24,18 @@ impl Glottis {
         }
     }
 
-    pub fn get_phase(&self) -> F {
+    pub fn get_phase(&self) -> f32 {
         self.phase
     }
 
     pub fn process(
         &mut self,
-        frequency: F,
-        tenseness: F,
-        intensity: F,
-        loudness: F,
-        aspiration_level: F,
-    ) -> F {
+        frequency: f32,
+        tenseness: f32,
+        intensity: f32,
+        loudness: f32,
+        aspiration_level: f32,
+    ) -> f32 {
         let noise = self.aspiration_noise.process();
 
         let d = frequency / self.sample_rate;
@@ -63,25 +61,25 @@ impl Glottis {
         out + aspiration
     }
 
-    fn get_noise_modulator(&mut self, rate: F) -> F {
-        let voiced = 0.1 + 0.2 * 0.0f64.max((PI * 2.0 * self.phase).sin());
+    fn get_noise_modulator(&mut self, rate: f32) -> f32 {
+        let voiced = 0.1 + 0.2 * 0.0f32.max((PI * 2.0 * self.phase).sin());
         lerp(0.3, voiced, rate)
     }
 }
 
 /// Liljencrants-Fant waveform
 struct Waveform {
-    alpha: F,
-    e0: F,
-    epsilon: F,
-    shift: F,
-    delta: F,
-    te: F,
-    omega: F,
+    alpha: f32,
+    e0: f32,
+    epsilon: f32,
+    shift: f32,
+    delta: f32,
+    te: f32,
+    omega: f32,
 }
 
 impl Waveform {
-    fn new(tenseness: F) -> Self {
+    fn new(tenseness: f32) -> Self {
         let rd = (3.0 * (1.0 - tenseness)).clamp(0.5, 2.7);
 
         let ra = -0.01 + 0.048 * rd;
@@ -128,7 +126,7 @@ impl Waveform {
     }
 
     #[allow(dead_code)]
-    fn compute(&self, t: F) -> F {
+    fn compute(&self, t: f32) -> f32 {
         if self.te < t {
             (-(-self.epsilon * (t - self.te)).exp() + self.shift) / self.delta
         } else {
@@ -138,16 +136,16 @@ impl Waveform {
 }
 
 pub struct WaveformIntegral {
-    te: F,
-    e0: F,
-    alpha: F,
-    omega: F,
-    a: F,
-    epsilon: F,
-    b: F,
-    shift: F,
-    c: F,
-    d: F,
+    te: f32,
+    e0: f32,
+    alpha: f32,
+    omega: f32,
+    a: f32,
+    epsilon: f32,
+    b: f32,
+    shift: f32,
+    c: f32,
+    d: f32,
 }
 
 impl WaveformIntegral {
@@ -170,7 +168,7 @@ impl WaveformIntegral {
         }
     }
 
-    pub fn compute(&self, t: F) -> F {
+    pub fn compute(&self, t: f32) -> f32 {
         if t <= self.te {
             self.e0
                 * (self.alpha * t).exp()

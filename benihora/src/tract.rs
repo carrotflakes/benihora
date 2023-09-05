@@ -1,10 +1,8 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
-use crate::{noise::Noise, IntervalTimer};
+use crate::{lerp, noise::Noise, IntervalTimer};
 
-use super::{lerp, F};
-
-pub const DEFAULT_TONGUE: (f64, f64) = (12.9, 2.43);
+pub const DEFAULT_TONGUE: (f32, f32) = (12.9, 2.43);
 
 pub struct Tract {
     pub(crate) params: OtherParams,
@@ -14,17 +12,17 @@ pub struct Tract {
     reflections: Reflections,
     pub(crate) new_reflections: Reflections,
     pub state: State,
-    pub movement_speed: F, // CM per second
-    sample_rate: F,
+    pub movement_speed: f32, // CM per second
+    sample_rate: f32,
     update_timer: IntervalTimer,
     fricative_noise: Noise,
     last_obstruction: usize,
     steps_per_process: usize,
-    dtime: F,
+    dtime: f32,
 }
 
 impl Tract {
-    pub fn new(steps_per_process: usize, sample_rate: F, seed: u32) -> Self {
+    pub fn new(steps_per_process: usize, sample_rate: f32, seed: u32) -> Self {
         let mouth_length = 44;
         let nose_length = 28;
         let nose_start = mouth_length - nose_length + 1;
@@ -35,7 +33,7 @@ impl Tract {
         diameter.compute_reflections(&mut reflections);
 
         Tract {
-            params: OtherParams::new(nose_start, sample_rate * steps_per_process as f64),
+            params: OtherParams::new(nose_start, sample_rate * steps_per_process as f32),
             source,
             current_diameter: diameter.clone(),
             target_diameter: diameter.clone(),
@@ -48,16 +46,16 @@ impl Tract {
             fricative_noise: Noise::new(seed + 1, sample_rate, 1000.0),
             last_obstruction: usize::MAX,
             steps_per_process,
-            dtime: 1.0 / (sample_rate * steps_per_process as f64),
+            dtime: 1.0 / (sample_rate * steps_per_process as f32),
         }
     }
 
-    pub fn process(&mut self, intensity: F, x: F) -> F {
+    pub fn process(&mut self, intensity: f32, x: f32) -> f32 {
         if self.update_timer.overflowed() {
             self.update_block(self.update_timer.interval);
         }
         let lambda = self.update_timer.progress();
-        self.update_timer.update(1.0 / self.sample_rate as f64);
+        self.update_timer.update(1.0 / self.sample_rate);
 
         let fricative_noise = self.fricative_noise.process();
 
@@ -71,10 +69,15 @@ impl Tract {
             vocal_out += mouth + nose;
         }
 
-        (vocal_out / self.steps_per_process as f64).into()
+        (vocal_out / self.steps_per_process as f32).into()
     }
 
-    pub fn run_step(&mut self, glottal_output: F, turbulence_noise: F, lambda: F) -> (F, F) {
+    pub fn run_step(
+        &mut self,
+        glottal_output: f32,
+        turbulence_noise: f32,
+        lambda: f32,
+    ) -> (f32, f32) {
         self.state.process_transients(self.dtime);
         self.state
             .process_turbulence_noise(self.dtime, turbulence_noise);
@@ -99,7 +102,7 @@ impl Tract {
         (lip_output, nose_out)
     }
 
-    pub fn update_block(&mut self, block_time: F) {
+    pub fn update_block(&mut self, block_time: f32) {
         self.current_diameter
             .reshape(&self.target_diameter, block_time * self.movement_speed);
         {
@@ -134,7 +137,7 @@ impl Tract {
         self.state.turbulences.iter_mut().for_each(|t| t.on = false);
         for constriction in &self.source.other_constrictions {
             let diameter_range = 0.3..0.7;
-            if !(1.0..(self.source.length - 1) as F).contains(&constriction.0)
+            if !(1.0..(self.source.length - 1) as f32).contains(&constriction.0)
                 || !diameter_range.contains(&constriction.1)
             {
                 continue;
@@ -154,12 +157,12 @@ impl Tract {
         }
     }
 
-    pub fn velum_target(&self) -> F {
+    pub fn velum_target(&self) -> f32 {
         self.target_diameter.nose[0]
     }
 
     /// value: 0.01 - 0.4
-    pub fn set_velum_target(&mut self, velum_target: F) {
+    pub fn set_velum_target(&mut self, velum_target: f32) {
         self.target_diameter.nose[0] = velum_target;
     }
 }
@@ -172,19 +175,19 @@ pub struct ShapeSource {
     pub lip_start: usize,
     pub nose_start: usize,
 
-    original_diameter: Vec<F>,
+    original_diameter: Vec<f32>,
 
-    pub tongue: (F, F), // (index, diameter) // TODO index -> rate, should this be here?
-    pub other_constrictions: Vec<(F, F)>,
+    pub tongue: (f32, f32), // (index, diameter) // TODO index -> rate, should this be here?
+    pub other_constrictions: Vec<(f32, f32)>,
 }
 
 impl ShapeSource {
     pub fn new(length: usize, nose_length: usize) -> Self {
         let original_diameter = (0..length)
             .map(|i| {
-                if (i as f64) < (7.0 / 44.0 * length as F - 0.5) {
+                if (i as f32) < (7.0 / 44.0 * length as f32 - 0.5) {
                     0.6
-                } else if (i as f64) < (12.0 / 44.0 * length as F) {
+                } else if (i as f32) < (12.0 / 44.0 * length as f32) {
                     1.1
                 } else {
                     1.5
@@ -206,13 +209,14 @@ impl ShapeSource {
     }
 
     pub fn compute_diameter(&self, diameter: &mut Diameter) {
-        const GRID_OFFSET: F = 1.7;
+        const GRID_OFFSET: f32 = 1.7;
 
         let (tongue_index, tongue_diameter) = self.tongue;
 
         diameter.mouth.copy_from_slice(&self.original_diameter);
         for i in self.blade_start..self.lip_start {
-            let t = 1.1 * PI * (tongue_index - i as F) / (self.tip_start - self.blade_start) as F;
+            let t =
+                1.1 * PI * (tongue_index - i as f32) / (self.tip_start - self.blade_start) as f32;
             let fixed_tongue_diameter = 2.0 + (tongue_diameter - 2.0) / 1.5;
             let mut curve = (1.5 - fixed_tongue_diameter + GRID_OFFSET) * t.cos();
             if i == self.blade_start - 2 || i == self.lip_start - 1 {
@@ -231,13 +235,13 @@ impl ShapeSource {
 
             let width = if index < 25.0 {
                 10.0
-            } else if index >= self.tip_start as F {
+            } else if index >= self.tip_start as f32 {
                 5.0
             } else {
-                10.0 - 5.0 * (index - 25.0) / (self.tip_start as F - 25.0)
+                10.0 - 5.0 * (index - 25.0) / (self.tip_start as f32 - 25.0)
             };
 
-            if index >= 2.0 && index < self.length as F && d < 3.0 {
+            if index >= 2.0 && index < self.length as f32 && d < 3.0 {
                 // && y<tractCanvas.height
                 let int_index = index.round() as isize;
                 for i in -width.ceil() as isize - 1..width as isize + 1 {
@@ -247,7 +251,7 @@ impl ShapeSource {
                         continue;
                     }
                     let idx = idx as usize;
-                    let relpos = (idx as F - index).abs() - 0.5;
+                    let relpos = (idx as f32 - index).abs() - 0.5;
                     let shrink = if relpos <= 0.0 {
                         0.0
                     } else if relpos > width {
@@ -263,11 +267,11 @@ impl ShapeSource {
         }
     }
 
-    pub fn tongue_clamp(&self, index: F, diameter: F) -> (F, F) {
-        const INNER_RADIUS: F = 2.05;
-        const OUTER_RADIUS: F = 3.5;
-        let lower_index_bound = self.blade_start as F + 2.0;
-        let upper_index_bound = self.tip_start as F - 3.0;
+    pub fn tongue_clamp(&self, index: f32, diameter: f32) -> (f32, f32) {
+        const INNER_RADIUS: f32 = 2.05;
+        const OUTER_RADIUS: f32 = 3.5;
+        let lower_index_bound = self.blade_start as f32 + 2.0;
+        let upper_index_bound = self.tip_start as f32 - 3.0;
         let index_center = (lower_index_bound + upper_index_bound) * 0.5;
 
         let mut from_point = (OUTER_RADIUS - diameter) / (OUTER_RADIUS - INNER_RADIUS);
@@ -286,16 +290,16 @@ impl ShapeSource {
 pub struct Diameter {
     nose_start: usize,
     tip_start: usize,
-    pub mouth: Vec<F>,
-    pub nose: Vec<F>,
+    pub mouth: Vec<f32>,
+    pub nose: Vec<f32>,
 }
 
 impl Diameter {
     pub fn new(source: &ShapeSource) -> Self {
         let mut nose: Vec<_> = (0..source.nose_length)
             .map(|i| {
-                let d = 2.0 * i as F / source.nose_length as F;
-                (1.9 as F).min(if d < 1.0 {
+                let d = 2.0 * i as f32 / source.nose_length as f32;
+                (1.9 as f32).min(if d < 1.0 {
                     0.4 + 1.6 * d
                 } else {
                     0.5 + 1.5 * (2.0 - d)
@@ -312,15 +316,15 @@ impl Diameter {
         }
     }
 
-    pub fn reshape(&mut self, target_diameter: &Diameter, amount: F) {
+    pub fn reshape(&mut self, target_diameter: &Diameter, amount: f32) {
         for i in 0..self.mouth.len() {
             let slow_return = if i < self.nose_start {
                 0.6
             } else if i >= self.tip_start {
                 1.0
             } else {
-                0.6 + 0.4 * (i as F - self.nose_start as F)
-                    / (self.tip_start as F - self.nose_start as F)
+                0.6 + 0.4 * (i as f32 - self.nose_start as f32)
+                    / (self.tip_start as f32 - self.nose_start as f32)
             };
             self.mouth[i] = move_towards(
                 self.mouth[i],
@@ -364,12 +368,12 @@ impl Diameter {
 
 #[derive(Clone)]
 pub struct Reflections {
-    mouth: Vec<F>,
-    pub(crate) nose: Vec<F>,
+    mouth: Vec<f32>,
+    pub(crate) nose: Vec<f32>,
 
-    junction_left: F,
-    junction_right: F,
-    junction_nose: F,
+    junction_left: f32,
+    junction_right: f32,
+    junction_nose: f32,
 }
 
 impl Reflections {
@@ -386,15 +390,15 @@ impl Reflections {
 }
 
 pub struct State {
-    r: Vec<F>,
-    l: Vec<F>,
-    r_: Vec<F>,
-    l_: Vec<F>,
+    r: Vec<f32>,
+    l: Vec<f32>,
+    r_: Vec<f32>,
+    l_: Vec<f32>,
 
-    nose_r: Vec<F>,
-    nose_l: Vec<F>,
-    nose_r_: Vec<F>,
-    nose_l_: Vec<F>,
+    nose_r: Vec<f32>,
+    nose_l: Vec<f32>,
+    nose_r_: Vec<f32>,
+    nose_l_: Vec<f32>,
 
     transients: Vec<Transient>,
     turbulences: Vec<Turbulence>,
@@ -418,23 +422,23 @@ impl State {
         }
     }
 
-    pub fn process_transients(&mut self, dtime: F) {
+    pub fn process_transients(&mut self, dtime: f32) {
         for trans in self.transients.iter_mut() {
             if trans.delay > 0.0 {
                 trans.delay -= dtime;
                 continue;
             }
-            let amplitude = trans.strength * (2 as F).powf(-Transient::EXPONENT * trans.time_alive);
+            let amplitude = trans.strength * (2.0f32).powf(-Transient::EXPONENT * trans.time_alive);
             self.r[trans.position] += amplitude * 0.5;
             self.l[trans.position] += amplitude * 0.5;
             trans.time_alive += dtime;
         }
 
-        const LIFE_TIME: F = 0.2;
+        const LIFE_TIME: f32 = 0.2;
         self.transients.retain(|t| t.time_alive <= LIFE_TIME)
     }
 
-    pub fn process_turbulence_noise(&mut self, dtime: f64, turbulence_noise: F) {
+    pub fn process_turbulence_noise(&mut self, dtime: f32, turbulence_noise: f32) {
         let mut turbulences = Vec::new();
         std::mem::swap(&mut turbulences, &mut self.turbulences);
         for turbulence in &mut turbulences {
@@ -456,9 +460,9 @@ impl State {
         params: &OtherParams,
         reflections: &Reflections,
         new_reflections: &Reflections,
-        lambda: F,
-        glottal_output: F,
-    ) -> F {
+        lambda: f32,
+        glottal_output: f32,
+    ) -> f32 {
         let length = self.r.len();
 
         //self.glottalReflection = -0.8 + 1.6 * Glottis.newTenseness;
@@ -501,7 +505,12 @@ impl State {
         self.r[length - 1]
     }
 
-    pub fn process_nose(&mut self, params: &OtherParams, reflections: &Reflections, first: F) -> F {
+    pub fn process_nose(
+        &mut self,
+        params: &OtherParams,
+        reflections: &Reflections,
+        first: f32,
+    ) -> f32 {
         let length: usize = self.nose_r.len();
         self.nose_l_[length - 1] = self.nose_r[length - 1] * params.lip_reflection;
 
@@ -523,9 +532,9 @@ impl State {
         self.nose_r[length - 1]
     }
 
-    fn add_noise_at_index(&mut self, index: F, noise: F) {
+    fn add_noise_at_index(&mut self, index: f32, noise: f32) {
         let i = index.floor() as usize;
-        let delta = index - i as F;
+        let delta = index - i as f32;
 
         let noise0 = noise * (1.0 - delta);
         let noise1 = noise * delta;
@@ -538,23 +547,23 @@ impl State {
 
 pub struct OtherParams {
     nose_start: usize,
-    glottal_reflection: F,
-    lip_reflection: F,
-    fade: F,
+    glottal_reflection: f32,
+    lip_reflection: f32,
+    fade: f32,
 }
 
 impl OtherParams {
-    pub fn new(nose_start: usize, sample_rate: F) -> Self {
+    pub fn new(nose_start: usize, sample_rate: f32) -> Self {
         OtherParams {
             nose_start,
             glottal_reflection: 0.75,
             lip_reflection: -0.85,
-            fade: 0.999f64.powf(96000.0 / sample_rate),
+            fade: 0.999f32.powf(96000.0 / sample_rate),
         }
     }
 }
 
-fn move_towards(current: F, target: F, up: F, down: F) -> F {
+fn move_towards(current: f32, target: f32, up: f32, down: f32) -> f32 {
     if current < target {
         target.min(current + up)
     } else {
@@ -564,26 +573,26 @@ fn move_towards(current: F, target: F, up: F, down: F) -> F {
 
 struct Transient {
     position: usize,
-    delay: F,
-    time_alive: F,
-    strength: F,
+    delay: f32,
+    time_alive: f32,
+    strength: f32,
 }
 
 impl Transient {
-    const EXPONENT: F = 200.0;
+    const EXPONENT: f32 = 200.0;
 }
 
 #[derive(Clone)]
 struct Turbulence {
-    index: F,
-    diameter: F,
-    strength: F,
-    intensity: F,
+    index: f32,
+    diameter: f32,
+    strength: f32,
+    intensity: f32,
     on: bool,
 }
 
 impl Turbulence {
-    fn new(index: F, diameter: F) -> Self {
+    fn new(index: f32, diameter: f32) -> Self {
         let thinness = (8.0 * (0.7 - diameter)).clamp(0.0, 1.0);
         let openness = (30.0 * (diameter - 0.3)).clamp(0.0, 1.0);
         let strength = 0.66 * thinness * openness;
@@ -596,7 +605,7 @@ impl Turbulence {
         }
     }
 
-    fn update_intensity(&mut self, dtime: f64) {
+    fn update_intensity(&mut self, dtime: f32) {
         let attack_time = 0.1;
         if self.on {
             self.intensity = (self.intensity + dtime / attack_time).min(1.0);

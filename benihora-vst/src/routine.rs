@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Routine {
     pub name: String,
-    pub events: Vec<(f64, Event)>,
+    pub events: Vec<(f32, Event)>,
 }
 
 impl Routine {
@@ -29,10 +29,10 @@ impl Routine {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Event {
-    Tongue { i: usize, speed: Option<f64> },
-    Constriction { i: usize, strength: Option<f64> },
-    Velum { openness: f64 },
-    Pitch { value: f64 },
+    Tongue { i: usize, speed: Option<f32> },
+    Constriction { i: usize, strength: Option<f32> },
+    Velum { openness: f32 },
+    Pitch { value: f32 },
     Sound { sound: bool },
     ForceDiameter,
     RandomTangue,
@@ -76,7 +76,7 @@ pub enum EventKind {
 
 #[derive(Default)]
 pub struct Runtime {
-    events: Vec<(f64, Event)>,
+    events: Vec<(f32, Event)>,
 }
 
 impl Runtime {
@@ -124,7 +124,7 @@ impl Runtime {
         self.events = merged;
     }
 
-    pub fn process(&mut self, dtime: f64, mut dispatch: impl FnMut(Event)) {
+    pub fn process(&mut self, dtime: f32, mut dispatch: impl FnMut(Event)) {
         while !self.events.is_empty() {
             self.events[0].0 -= dtime;
             if self.events[0].0 > 0.0 {

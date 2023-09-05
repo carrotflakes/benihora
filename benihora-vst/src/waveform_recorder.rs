@@ -1,7 +1,7 @@
 pub struct WaveformRecorder {
     waveform: Vec<f32>,
     waveform_: Vec<f32>,
-    last_phase: f64,
+    last_phase: f32,
 }
 
 impl WaveformRecorder {
@@ -13,13 +13,13 @@ impl WaveformRecorder {
         }
     }
 
-    pub fn record(&mut self, phase: f64, x: f64) {
+    pub fn record(&mut self, phase: f32, x: f32) {
         if self.last_phase > phase {
             std::mem::swap(&mut self.waveform, &mut self.waveform_);
             self.waveform_.clear();
         }
         self.last_phase = phase;
-        self.waveform_.push(x as f32);
+        self.waveform_.push(x);
     }
 
     pub fn get_waveform(&self) -> &[f32] {

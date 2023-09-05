@@ -36,7 +36,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         let dy = 3.75;
         let mut points = vec![];
         for (i, d) in tract.current_diameter.nose.iter().enumerate() {
-            points.push(to_screen * egui::pos2(dx + i as f32, dy - *d as f32));
+            points.push(to_screen * egui::pos2(dx + i as f32, dy - *d));
         }
         let stroke = egui::Stroke::new(1.0, egui::Color32::GRAY);
         ui.painter().add(egui::Shape::line(points, stroke));
@@ -63,7 +63,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         // mouth
         let mut points = vec![];
         for (i, d) in tract.current_diameter.mouth.iter().enumerate() {
-            points.push(to_screen * egui::pos2(i as f32, (*d + 4.0) as f32));
+            points.push(to_screen * egui::pos2(i as f32, *d + 4.0));
         }
         let stroke = egui::Stroke::new(1.0, egui::Color32::GRAY);
         ui.painter().add(egui::Shape::line(points, stroke));
@@ -77,7 +77,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
 
         // tongue
         for (i, pos) in tongue_poses.iter().enumerate() {
-            let pos = to_screen * egui::pos2(pos.0 as f32, (pos.1 as f32) + 4.0);
+            let pos = to_screen * egui::pos2(pos.0, (pos.1) + 4.0);
             if pointer.map(|p| (p - pos).length() < 5.0).unwrap_or(false) {
                 egui::containers::show_tooltip_for(
                     ui.ctx(),
@@ -95,7 +95,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
 
         // constriction
         for (i, &oc) in other_constrictions.iter().enumerate() {
-            let pos = to_screen * egui::pos2(oc.0 as f32, (oc.1 as f32) + 4.0);
+            let pos = to_screen * egui::pos2(oc.0, (oc.1) + 4.0);
             if pointer.map(|p| (p - pos).length() < 5.0).unwrap_or(false) {
                 hover = Some(Part::Constriction(i));
                 ui.painter()
@@ -118,11 +118,7 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
 
         // current tongue
         ui.painter().circle_filled(
-            to_screen
-                * egui::pos2(
-                    tract.source.tongue.0 as f32,
-                    (tract.source.tongue.1 as f32) + 4.0,
-                ),
+            to_screen * egui::pos2(tract.source.tongue.0, (tract.source.tongue.1) + 4.0),
             2.0,
             egui::Color32::RED,
         );
@@ -187,17 +183,15 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
                     //     .benihora
                     //     .tract
                     //     .source
-                    //     .tongue_clamp(pos.x as f64, (pos.y - 4.0) as f64);
-                    benihora.tract.tongue_target = (
-                        (pos.x as f64).clamp(12.0, 28.0),
-                        ((pos.y - 4.0) as f64).clamp(2.0, 4.0),
-                    );
+                    //     .tongue_clamp(pos.x as f32, (pos.y - 4.0) as f32);
+                    benihora.tract.tongue_target =
+                        ((pos.x).clamp(12.0, 28.0), (pos.y - 4.0).clamp(2.0, 4.0));
                 }
             }
             Some(Part::Constriction(ci)) => {
                 if let Some(pos) = pointer {
                     let pos = from_screen * pos;
-                    benihora.benihora.tract.source.other_constrictions[ci].1 = (pos.y - 4.0) as f64;
+                    benihora.benihora.tract.source.other_constrictions[ci].1 = pos.y - 4.0;
                 }
             }
             _ => {}

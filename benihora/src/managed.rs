@@ -1,6 +1,6 @@
-use std::f64::consts::TAU;
+use std::f32::consts::TAU;
 
-use crate::{lerp, wiggle::Wiggle, Benihora, IntervalTimer, F};
+use crate::{lerp, wiggle::Wiggle, Benihora, IntervalTimer};
 
 pub struct BenihoraManaged {
     pub sound: bool,
@@ -10,11 +10,11 @@ pub struct BenihoraManaged {
     loudness: Loudness,
     pub benihora: Benihora,
     update_timer: IntervalTimer,
-    dtime: F,
+    dtime: f32,
 }
 
 impl BenihoraManaged {
-    pub fn new(sound_speed: F, sample_rate: F, seed: u32) -> Self {
+    pub fn new(sound_speed: f32, sample_rate: f32, seed: u32) -> Self {
         assert!(seed < 1 << 16);
         let interval = 0.02;
         Self {
@@ -22,7 +22,7 @@ impl BenihoraManaged {
             frequency: Frequency::new(interval, seed, 140.0, 0.005, 6.0),
             tenseness: Tenseness::new(interval, seed + 2, 0.6),
             intensity: Intensity::new(0.0),
-            loudness: Loudness::new(0.6f64.powf(0.25)),
+            loudness: Loudness::new(0.6f32.powf(0.25)),
             benihora: Benihora::new(sound_speed, sample_rate, 1.0, seed, true),
             update_timer: IntervalTimer::new_overflowed(interval),
             dtime: 1.0 / sample_rate,
@@ -30,14 +30,14 @@ impl BenihoraManaged {
     }
 
     /// let v = v.clamp(0.0, 1.0);
-    /// set_tenseness(1.0 - (v * std::f64::consts::PI * 0.5).cos());
-    pub fn set_tenseness(&mut self, tenseness: F) {
+    /// set_tenseness(1.0 - (v * std::f32::consts::PI * 0.5).cos());
+    pub fn set_tenseness(&mut self, tenseness: f32) {
         let tenseness = tenseness.clamp(0.0, 1.0);
         self.tenseness.target_tenseness = tenseness;
         self.loudness.target = tenseness.powf(0.25);
     }
 
-    pub fn process(&mut self, current_time: F) -> F {
+    pub fn process(&mut self, current_time: f32) -> f32 {
         if self.update_timer.overflowed() {
             self.intensity
                 .update(self.sound, self.update_timer.interval);
@@ -57,19 +57,25 @@ impl BenihoraManaged {
 }
 
 pub struct Frequency {
-    old_frequency: F,
-    new_frequency: F,
-    pub target_frequency: F,
-    smooth_frequency: F,
+    old_frequency: f32,
+    new_frequency: f32,
+    pub target_frequency: f32,
+    smooth_frequency: f32,
 
-    pub vibrato_amount: F,
-    pub vibrato_frequency: F,
-    pub wobble_amount: F,
+    pub vibrato_amount: f32,
+    pub vibrato_frequency: f32,
+    pub wobble_amount: f32,
     wiggles: [Wiggle; 2],
 }
 
 impl Frequency {
-    pub fn new(dtime: F, seed: u32, frequency: F, vibrato_amount: F, vibrato_frequency: F) -> Self {
+    pub fn new(
+        dtime: f32,
+        seed: u32,
+        frequency: f32,
+        vibrato_amount: f32,
+        vibrato_frequency: f32,
+    ) -> Self {
         Self {
             old_frequency: frequency,
             new_frequency: frequency,
@@ -85,11 +91,11 @@ impl Frequency {
         }
     }
 
-    pub fn set(&mut self, frequency: F) {
+    pub fn set(&mut self, frequency: f32) {
         self.target_frequency = frequency;
     }
 
-    pub fn update(&mut self, time: F) {
+    pub fn update(&mut self, time: f32) {
         let mut vibrato = self.vibrato_amount * (TAU * time * self.vibrato_frequency).sin();
         vibrato += self.wobble_amount
             * (0.01 * self.wiggles[0].process() + 0.02 * self.wiggles[1].process());
@@ -104,21 +110,21 @@ impl Frequency {
         self.new_frequency = self.smooth_frequency * (1.0 + vibrato);
     }
 
-    pub fn get(&self, lambda: F) -> F {
+    pub fn get(&self, lambda: f32) -> f32 {
         lerp(self.old_frequency, self.new_frequency, lambda)
     }
 }
 
 pub struct Tenseness {
-    old_tenseness: F,
-    new_tenseness: F,
-    pub target_tenseness: F,
+    old_tenseness: f32,
+    new_tenseness: f32,
+    pub target_tenseness: f32,
     wiggles: [Wiggle; 2],
-    pub wobble_amount: F,
+    pub wobble_amount: f32,
 }
 
 impl Tenseness {
-    pub fn new(dtime: F, seed: u32, tenseness: F) -> Self {
+    pub fn new(dtime: f32, seed: u32, tenseness: f32) -> Self {
         Self {
             old_tenseness: tenseness,
             new_tenseness: tenseness,
@@ -139,20 +145,20 @@ impl Tenseness {
         self.new_tenseness = self.new_tenseness.clamp(0.0, 1.0);
     }
 
-    pub fn get(&self, lambda: F) -> F {
+    pub fn get(&self, lambda: f32) -> f32 {
         lerp(self.old_tenseness, self.new_tenseness, lambda)
     }
 }
 
 pub struct Intensity {
-    old_intensity: F,
-    new_intensity: F,
-    pub up_velocity: F,
-    pub down_velocity: F,
+    old_intensity: f32,
+    new_intensity: f32,
+    pub up_velocity: f32,
+    pub down_velocity: f32,
 }
 
 impl Intensity {
-    pub fn new(intensity: F) -> Self {
+    pub fn new(intensity: f32) -> Self {
         Self {
             old_intensity: intensity,
             new_intensity: intensity,
@@ -161,7 +167,7 @@ impl Intensity {
         }
     }
 
-    pub fn update(&mut self, sound: bool, interval: f64) {
+    pub fn update(&mut self, sound: bool, interval: f32) {
         self.old_intensity = self.new_intensity;
         if sound {
             self.new_intensity += interval * self.up_velocity;
@@ -171,25 +177,25 @@ impl Intensity {
         self.new_intensity = self.new_intensity.clamp(0.0, 1.0);
     }
 
-    pub fn get(&self, lambda: F) -> F {
+    pub fn get(&self, lambda: f32) -> f32 {
         lerp(self.old_intensity, self.new_intensity, lambda)
     }
 }
 
 pub struct Loudness {
-    current: F,
-    pub target: F,
+    current: f32,
+    pub target: f32,
 }
 
 impl Loudness {
-    pub fn new(loudness: F) -> Self {
+    pub fn new(loudness: f32) -> Self {
         Self {
             current: loudness,
             target: loudness,
         }
     }
 
-    pub fn process(&mut self, dtime: f64) -> F {
+    pub fn process(&mut self, dtime: f32) -> f32 {
         self.current = if self.current < self.target {
             self.target.min(self.current + 10.0 * dtime)
         } else {

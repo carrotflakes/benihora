@@ -251,14 +251,14 @@ fn show_history(ui: &mut egui::Ui, history: &Vec<[f32; 5]>) -> egui::Response {
                 if i >= history.len() {
                     break;
                 }
-                let p: f64 = i as f64 / w as f64;
-                let v = history[history.len() - i - 1][j] as f32;
+                let p = i as f32 / w as f32;
+                let v = history[history.len() - i - 1][j];
                 let v = match *ty {
                     0 => v,
                     1 => ((v / 440.0).log2() + 2.0) / 5.0,
                     _ => unreachable!(),
                 };
-                points.push(to_screen * egui::pos2(p as f32, -v));
+                points.push(to_screen * egui::pos2(p, -v));
             }
 
             let color = [
@@ -319,10 +319,7 @@ pub fn benihora_tract_frequency_response(tract: &Tract) -> Vec<f32> {
     let res = 1024;
     let fft = FFT_PLANNER.with(|planner| planner.borrow_mut().plan_fft_forward(res));
     let buf = benihora::tract_impulse_response(res, tract);
-    let mut buf = buf
-        .iter()
-        .map(|c| Complex32::from(*c as f32))
-        .collect::<Vec<_>>();
+    let mut buf = buf.iter().map(|c| Complex32::from(*c)).collect::<Vec<_>>();
     fft.process(&mut buf);
     let buf = buf
         .iter()

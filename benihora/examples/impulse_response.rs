@@ -11,7 +11,7 @@ fn main() {
 
     let mut stdout = std::io::stdout();
     for x in buf {
-        let x = (x * std::i16::MAX as f64) as i16;
+        let x = (x * std::i16::MAX as f32) as i16;
         stdout.write(&x.to_ne_bytes()).unwrap();
     }
 }

@@ -1,8 +1,8 @@
 use benihora::tract::DEFAULT_TONGUE;
 
 pub struct Tract {
-    pub tongue_target: (f64, f64),
-    pub speed: f64,
+    pub tongue_target: (f32, f32),
+    pub speed: f32,
 }
 
 impl Tract {
@@ -13,7 +13,7 @@ impl Tract {
         }
     }
 
-    pub fn update(&mut self, dtime: f64, tongue: &mut (f64, f64)) {
+    pub fn update(&mut self, dtime: f32, tongue: &mut (f32, f32)) {
         let x_scale = 8.0;
         let x = (self.tongue_target.0 - tongue.0) / x_scale;
         let y = self.tongue_target.1 - tongue.1;
