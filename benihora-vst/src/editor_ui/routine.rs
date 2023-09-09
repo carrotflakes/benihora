@@ -1,7 +1,7 @@
 use nih_plug_egui::egui::{self, Button, ComboBox, ScrollArea};
 
 use crate::{
-    routine::{Event, Routine},
+    routine::{Event, Routine, TongueIndex},
     synth::Synth,
 };
 
@@ -207,9 +207,13 @@ pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
 fn add_event_ui<'a>(synth: &'a mut Synth, index: usize) -> impl FnMut(&mut egui::Ui) + 'a {
     move |ui| {
         if ui.button("Tongue").clicked() {
-            synth.routines[index]
-                .events
-                .push((0.0, Event::Tongue { i: 0, speed: None }));
+            synth.routines[index].events.push((
+                0.0,
+                Event::Tongue {
+                    index: TongueIndex::Index(0),
+                    speed: None,
+                },
+            ));
             ui.close_menu();
         }
         if ui.button("Constriction").clicked() {
@@ -246,24 +250,21 @@ fn add_event_ui<'a>(synth: &'a mut Synth, index: usize) -> impl FnMut(&mut egui:
                 .push((0.0, Event::ForceDiameter));
             ui.close_menu();
         }
-        if ui.button("Random tongue").clicked() {
-            synth.routines[index]
-                .events
-                .push((0.0, Event::RandomTangue));
-            ui.close_menu();
-        }
     }
 }
 
 fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constrictions: usize) {
     match ev {
-        Event::Tongue { i, speed } => {
+        Event::Tongue { index, speed } => {
             ui.horizontal(|ui| {
                 ComboBox::from_id_source("tongue")
-                    .selected_text(format!("Tongue {}", *i))
+                    .selected_text(index.name())
                     .show_ui(ui, |ui| {
-                        for j in 0..tongue_poses {
-                            ui.selectable_value(i, j, format!("Tongue {}", j));
+                        for j in (0..tongue_poses)
+                            .map(TongueIndex::Index)
+                            .chain([TongueIndex::Random])
+                        {
+                            ui.selectable_value(index, j, j.name());
                         }
                     });
 
@@ -323,7 +324,6 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
             ui.checkbox(sound, "Sound");
         }
         Event::ForceDiameter => {}
-        Event::RandomTangue => {}
     }
 }
 
@@ -356,14 +356,14 @@ fn preset() -> &'static [Routine] {
                     (
                         0.0,
                         Event::Tongue {
-                            i: 0,
+                            index: TongueIndex::Index(0),
                             speed: Some(200.0),
                         },
                     ),
                     (
                         0.1,
                         Event::Tongue {
-                            i: 2,
+                            index: TongueIndex::Index(2),
                             speed: Some(20.0),
                         },
                     ),
@@ -448,8 +448,23 @@ fn preset() -> &'static [Routine] {
             },
             Routine {
                 name: "Random tongue".to_string(),
-                events: vec![(0.0, Event::RandomTangue)],
+                events: vec![(
+                    0.0,
+                    Event::Tongue {
+                        index: TongueIndex::Random,
+                        speed: None,
+                    },
+                )],
             },
         ]
     })
+}
+
+impl TongueIndex {
+    fn name(&self) -> String {
+        match self {
+            TongueIndex::Index(i) => format!("Tongue {}", i),
+            TongueIndex::Random => "Random".to_owned(),
+        }
+    }
 }

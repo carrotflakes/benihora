@@ -29,13 +29,24 @@ impl Routine {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Event {
-    Tongue { i: usize, speed: Option<f32> },
-    Constriction { i: usize, strength: Option<f32> },
-    Velum { openness: f32 },
-    Pitch { value: f32 },
-    Sound { sound: bool },
+    Tongue {
+        index: TongueIndex,
+        speed: Option<f32>,
+    },
+    Constriction {
+        i: usize,
+        strength: Option<f32>,
+    },
+    Velum {
+        openness: f32,
+    },
+    Pitch {
+        value: f32,
+    },
+    Sound {
+        sound: bool,
+    },
     ForceDiameter,
-    RandomTangue,
 }
 
 impl Event {
@@ -47,7 +58,6 @@ impl Event {
             Event::Pitch { .. } => "Pitch",
             Event::Sound { .. } => "Sound",
             Event::ForceDiameter => "Force Diameter",
-            Event::RandomTangue => "Random Tongue",
         }
     }
 
@@ -59,9 +69,14 @@ impl Event {
             Event::Pitch { .. } => EventKind::Pitch,
             Event::Sound { .. } => EventKind::Sound,
             Event::ForceDiameter => EventKind::ForceDiameter,
-            Event::RandomTangue => EventKind::Tongue,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TongueIndex {
+    Index(usize),
+    Random,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

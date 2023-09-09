@@ -60,14 +60,14 @@ impl Synth {
                         (
                             0.0,
                             routine::Event::Tongue {
-                                i: 0,
+                                index: routine::TongueIndex::Index(0),
                                 speed: Some(200.0),
                             },
                         ),
                         (
                             0.1,
                             routine::Event::Tongue {
-                                i: 2,
+                                index: routine::TongueIndex::Index(1),
                                 speed: Some(20.0),
                             },
                         ),
@@ -119,11 +119,22 @@ impl Synth {
     pub fn process(&mut self, dtime: f32) -> f32 {
         let benihora = self.benihora.as_mut().unwrap();
         self.routine_runtime.process(dtime, |e| match e {
-            routine::Event::Tongue { i, speed } => {
-                if self.tongue_poses.len() <= i {
-                    return;
+            routine::Event::Tongue { index, speed } => {
+                match index {
+                    routine::TongueIndex::Index(i) => {
+                        if self.tongue_poses.len() <= i {
+                            return;
+                        }
+                        benihora.tract.tongue_target = self.tongue_poses[i];
+                    }
+                    routine::TongueIndex::Random => {
+                        let seed = &mut self.random_tongue;
+                        *seed = seed.overflowing_mul(48271).0 % ((1 << 31) - 1);
+
+                        benihora.tract.tongue_target =
+                            self.tongue_poses[*seed as usize % self.tongue_poses.len()];
+                    }
                 }
-                benihora.tract.tongue_target = (self.tongue_poses[i].0, self.tongue_poses[i].1);
                 if let Some(speed) = speed {
                     benihora.tract.speed = speed;
                 }
@@ -155,13 +166,6 @@ impl Synth {
                 benihora.benihora.tract.update_diameter();
                 benihora.benihora.tract.current_diameter =
                     benihora.benihora.tract.target_diameter.clone();
-            }
-            routine::Event::RandomTangue => {
-                let seed = &mut self.random_tongue;
-                *seed = seed.overflowing_mul(48271).0 % ((1 << 31) - 1);
-
-                benihora.tract.tongue_target =
-                    self.tongue_poses[*seed as usize % self.tongue_poses.len()];
             }
         });
 
