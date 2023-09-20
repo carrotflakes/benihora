@@ -3,6 +3,8 @@ name = "benihora-vst"
 version = "0.1.0"
 edition = "2021"
 authors = ["carrotflakes <carrotflakes@gmail.com>"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/carrotflakes/benihora"
 
 [workspace]
 members = ["xtask"]

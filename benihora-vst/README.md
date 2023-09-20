@@ -23,3 +23,7 @@ Copy the `benihora.vst3` directory to your VST3 Plugins folder.
 - [ ] Documentation
 - [ ] Polyphonic
 - [ ] Text input
+
+## License
+
+GPL-3.0 license
