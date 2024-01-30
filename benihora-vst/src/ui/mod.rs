@@ -2,25 +2,28 @@ mod knob;
 mod routine;
 mod tract;
 
+pub use self::knob::Param;
+
 use self::knob::{knob, knob_log, knob_param};
 use crate::{
+    egui::{self, ScrollArea},
     synth::{Control, Synth},
-    MyPluginParams, FFT_PLANNER,
+    FFT_PLANNER,
 };
 use benihora::tract::Tract;
-use nih_plug::prelude::*;
-use nih_plug_egui::egui::{self, ScrollArea};
 use rustfft::num_complex::Complex32;
-use std::sync::Arc;
 
-pub(crate) fn editor_ui(
+pub fn ui<P: Param>(
     egui_ctx: &egui::Context,
-    setter: &ParamSetter<'_>,
-    state: &mut Arc<MyPluginParams>,
+    synth: &mut Synth,
+    vibrato_amount: &mut P,
+    vibrato_rate: &mut P,
+    frequency_wobble: &mut P,
+    tenseness_wobble: &mut P,
+    tongue_x: &mut P,
+    tongue_y: &mut P,
 ) {
     egui::CentralPanel::default().show(egui_ctx, |ui| {
-        let mut synth = state.synth.lock().unwrap();
-
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
@@ -53,9 +56,9 @@ pub(crate) fn editor_ui(
                         &mut synth.benihora_params.frequency_pid.kd,
                         "Frequency kd",
                     ));
-                    ui.add(knob_param(&state.vibrato_amount, setter));
-                    ui.add(knob_param(&state.vibrato_rate, setter));
-                    ui.add(knob_param(&state.frequency_wobble, setter));
+                    ui.add(knob_param(vibrato_amount));
+                    ui.add(knob_param(vibrato_rate));
+                    ui.add(knob_param(frequency_wobble));
                 });
                 ui.horizontal(|ui| {
                     ui.add(knob(0.0..1.0, &mut synth.benihora_params.noteon_intensity, "Intensity"));
@@ -74,7 +77,7 @@ pub(crate) fn editor_ui(
                         &mut synth.benihora_params.intensity_pid.kd,
                         "Intensity kd",
                     ));
-                    ui.add(knob_param(&state.tenseness_wobble, setter));
+                    ui.add(knob_param(tenseness_wobble));
                 });
                 ui.horizontal(|ui| {
                     ui.add(knob(
@@ -112,8 +115,8 @@ pub(crate) fn editor_ui(
                 });
                 ui.horizontal(|ui| match synth.tongue_control {
                     crate::synth::Control::Host => {
-                        ui.add(knob_param(&state.tongue_x, setter));
-                        ui.add(knob_param(&state.tongue_y, setter));
+                        ui.add(knob_param(tongue_x));
+                        ui.add(knob_param(tongue_y));
                     }
                     crate::synth::Control::Internal => {
                         let tract = &mut synth.benihora.as_mut().unwrap().tract;
@@ -176,7 +179,7 @@ pub(crate) fn editor_ui(
 
                 match view_mode {
                     0 => {
-                        tract::show_tract(ui, &mut synth);
+                        tract::show_tract(ui, synth);
                     }
                     1 => {
                         let history = &synth.benihora.as_ref().unwrap().history;
@@ -195,10 +198,10 @@ pub(crate) fn editor_ui(
                     }
                     3 => {
                         ui.separator();
-                        routine::show_routines(ui, &mut synth);
+                        routine::show_routines(ui, synth);
                     }
                     4 => {
-                        show_key_bindings(ui, &mut synth);
+                        show_key_bindings(ui, synth);
                     }
                     5 => {
                         show_frequency_response(

@@ -1,9 +1,11 @@
 mod benihora_managed;
-mod editor_ui;
 mod routine;
 mod synth;
+mod ui;
 mod voice_manager;
 mod waveform_recorder;
+
+pub(crate) use nih_plug_egui::egui;
 
 use benihora::tract::DEFAULT_TONGUE;
 use nih_plug::prelude::*;
@@ -155,7 +157,20 @@ impl Plugin for MyPlugin {
                 style.spacing.interact_size = nih_plug_egui::egui::vec2(32.0, 16.0);
                 ctx.set_style(style);
             },
-            editor_ui::editor_ui,
+            |egui_ctx: &egui::Context,
+             setter: &ParamSetter<'_>,
+             state: &mut Arc<MyPluginParams>| {
+                ui::ui(
+                    egui_ctx,
+                    &mut *state.synth.lock().unwrap(),
+                    &mut UiParam::new(&state.vibrato_amount, setter),
+                    &mut UiParam::new(&state.vibrato_rate, setter),
+                    &mut UiParam::new(&state.frequency_wobble, setter),
+                    &mut UiParam::new(&state.tenseness_wobble, setter),
+                    &mut UiParam::new(&state.tongue_x, setter),
+                    &mut UiParam::new(&state.tongue_y, setter),
+                )
+            },
         )
     }
 
@@ -244,3 +259,40 @@ impl Vst3Plugin for MyPlugin {
 
 // nih_export_clap!(MyPlugin);
 nih_export_vst3!(MyPlugin);
+
+struct UiParam<'a> {
+    param: &'a FloatParam,
+    setter: &'a ParamSetter<'a>,
+}
+
+impl<'a> UiParam<'a> {
+    fn new(param: &'a FloatParam, setter: &'a ParamSetter<'a>) -> Self {
+        Self { param, setter }
+    }
+}
+
+impl<'a> ui::Param for UiParam<'a> {
+    fn set(&mut self, value: f32) {
+        self.setter.set_parameter(self.param, value);
+    }
+
+    fn modulated_normalized_value(&self) -> f32 {
+        self.param.smoothed.next()
+    }
+
+    fn default_plain_value(&self) -> f32 {
+        self.param.default_plain_value()
+    }
+
+    fn preview_plain(&self, value: f32) -> f32 {
+        self.param.preview_plain(value)
+    }
+
+    fn name(&self) -> &str {
+        self.param.name()
+    }
+
+    fn to_string(&self) -> String {
+        self.param.to_string()
+    }
+}

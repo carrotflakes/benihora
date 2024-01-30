@@ -1,5 +1,4 @@
-use nih_plug::prelude::{Param, ParamSetter};
-use nih_plug_egui::egui::{self, CursorIcon, Label};
+use crate::egui::{self, CursorIcon, Label};
 
 const SIZE: f32 = 18.0;
 
@@ -99,10 +98,16 @@ pub fn knob_log<'a>(
     }
 }
 
-pub fn knob_param<'a, P: Param>(
-    param: &'a P,
-    setter: &'a ParamSetter<'a>,
-) -> impl egui::Widget + 'a {
+pub trait Param {
+    fn set(&mut self, value: f32);
+    fn modulated_normalized_value(&self) -> f32;
+    fn default_plain_value(&self) -> f32;
+    fn preview_plain(&self, value: f32) -> f32;
+    fn name(&self) -> &str;
+    fn to_string(&self) -> String;
+}
+
+pub fn knob_param<'a, P: Param>(param: &'a mut P) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         let desired_size = egui::vec2(SIZE, SIZE);
 
@@ -113,7 +118,7 @@ pub fn knob_param<'a, P: Param>(
         let mut show_tip = false;
 
         if response.double_clicked() {
-            setter.set_parameter(param, param.default_plain_value());
+            param.set(param.default_plain_value());
             response.mark_changed();
         }
         if response.dragged() {
@@ -125,7 +130,7 @@ pub fn knob_param<'a, P: Param>(
             let delta = -response.drag_delta().y * amount;
 
             let value = (param.modulated_normalized_value() + delta * 0.01).clamp(0.0, 1.0);
-            setter.set_parameter(param, param.preview_plain(value));
+            param.set(param.preview_plain(value));
             response.mark_changed();
             ui.output_mut(|o| o.cursor_icon = CursorIcon::ResizeVertical);
             show_tip = true;

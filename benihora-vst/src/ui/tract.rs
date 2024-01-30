@@ -1,8 +1,5 @@
 use super::benihora_tract_frequency_response;
-
-use crate::synth::Synth;
-
-use nih_plug_egui::egui;
+use crate::{egui, synth::Synth};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Part {
