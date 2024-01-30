@@ -220,12 +220,10 @@ impl Plugin for MyPlugin {
                     self.params.tongue_y.smoothed.next();
             }
 
-            let current_time = synth.time;
-
             while let Some(e) = event {
                 if e.timing() <= count {
                     if let Some(e) = convert_event(&e) {
-                        synth.handle_event(current_time, &e);
+                        synth.handle_event(&e);
                     }
                     event = context.next_event();
                 } else {
@@ -235,7 +233,6 @@ impl Plugin for MyPlugin {
             count += 1;
 
             *channel_samples.get_mut(0).unwrap() = synth.process(dtime);
-            synth.time += dtime;
         }
 
         ProcessStatus::Normal

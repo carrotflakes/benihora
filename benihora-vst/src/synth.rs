@@ -17,9 +17,7 @@ pub struct Synth {
     pub tongue_control: Control,
 
     #[serde(skip)]
-    pub time: f32,
-    #[serde(skip)]
-    pub note_off_time: f32,
+    pub elapsed_from_note_off: f32,
     #[serde(skip)]
     pub benihora: Option<BenihoraManaged>,
     #[serde(skip)]
@@ -104,8 +102,7 @@ impl Synth {
             ],
             noteon_routine: 0,
             noteoff_routine: 0,
-            time: 0.0,
-            note_off_time: 0.0,
+            elapsed_from_note_off: 0.0,
             benihora: None,
             voice_manager: VoiceManager::new(),
             routine_runtime: Runtime::new(),
@@ -175,10 +172,12 @@ impl Synth {
             }
         });
 
+        self.elapsed_from_note_off += dtime;
+
         benihora.process(&self.benihora_params)
     }
 
-    pub fn handle_event(&mut self, time: f32, event: &Event) {
+    pub fn handle_event(&mut self, event: &Event) {
         let base = 0;
 
         match event {
@@ -214,7 +213,7 @@ impl Synth {
 
                 let frequency_reset_time = 0.25;
                 let muted = benihora.intensity.get() < 0.01
-                    && self.note_off_time + frequency_reset_time < time;
+                    && frequency_reset_time - self.elapsed_from_note_off < 0.0;
                 self.voice_manager.noteon(*note);
                 if let Some(note) = self.voice_manager.get_voice() {
                     benihora
@@ -254,7 +253,7 @@ impl Synth {
                     benihora.sound = true;
                 } else {
                     benihora.sound = false;
-                    self.note_off_time = time;
+                    self.elapsed_from_note_off = 0.0;
                     if (1..=self.routines.len()).contains(&self.noteoff_routine) {
                         self.trigger_routine(self.noteoff_routine - 1);
                     }
