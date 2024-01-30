@@ -160,16 +160,18 @@ impl Plugin for MyPlugin {
             |egui_ctx: &egui::Context,
              setter: &ParamSetter<'_>,
              state: &mut Arc<MyPluginParams>| {
-                ui::ui(
-                    egui_ctx,
-                    &mut *state.synth.lock().unwrap(),
-                    &mut UiParam::new(&state.vibrato_amount, setter),
-                    &mut UiParam::new(&state.vibrato_rate, setter),
-                    &mut UiParam::new(&state.frequency_wobble, setter),
-                    &mut UiParam::new(&state.tenseness_wobble, setter),
-                    &mut UiParam::new(&state.tongue_x, setter),
-                    &mut UiParam::new(&state.tongue_y, setter),
-                )
+                egui::CentralPanel::default().show(egui_ctx, |ui| {
+                    ui::show(
+                        ui,
+                        &mut *state.synth.lock().unwrap(),
+                        &mut UiParam::new(&state.vibrato_amount, setter),
+                        &mut UiParam::new(&state.vibrato_rate, setter),
+                        &mut UiParam::new(&state.frequency_wobble, setter),
+                        &mut UiParam::new(&state.tenseness_wobble, setter),
+                        &mut UiParam::new(&state.tongue_x, setter),
+                        &mut UiParam::new(&state.tongue_y, setter),
+                    );
+                });
             },
         )
     }
@@ -276,15 +278,15 @@ impl<'a> ui::Param for UiParam<'a> {
     }
 
     fn modulated_normalized_value(&self) -> f32 {
-        self.param.smoothed.next()
+        self.param.modulated_normalized_value()
     }
 
     fn default_plain_value(&self) -> f32 {
         self.param.default_plain_value()
     }
 
-    fn preview_plain(&self, value: f32) -> f32 {
-        self.param.preview_plain(value)
+    fn preview_plain(&self, normalized: f32) -> f32 {
+        self.param.preview_plain(normalized)
     }
 
     fn name(&self) -> &str {

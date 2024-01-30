@@ -13,8 +13,8 @@ use crate::{
 use benihora::tract::Tract;
 use rustfft::num_complex::Complex32;
 
-pub fn ui<P: Param>(
-    egui_ctx: &egui::Context,
+pub fn show<P: Param>(
+    ui: &mut egui::Ui,
     synth: &mut Synth,
     vibrato_amount: &mut P,
     vibrato_rate: &mut P,
@@ -23,8 +23,7 @@ pub fn ui<P: Param>(
     tongue_x: &mut P,
     tongue_y: &mut P,
 ) {
-    egui::CentralPanel::default().show(egui_ctx, |ui| {
-        ui.horizontal(|ui| {
+    ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     if ui
@@ -215,7 +214,6 @@ pub fn ui<P: Param>(
                 };
             });
         });
-    });
 }
 
 fn show_history(ui: &mut egui::Ui, history: &Vec<[f32; 5]>) -> egui::Response {

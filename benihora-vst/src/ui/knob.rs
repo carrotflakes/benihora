@@ -102,7 +102,7 @@ pub trait Param {
     fn set(&mut self, value: f32);
     fn modulated_normalized_value(&self) -> f32;
     fn default_plain_value(&self) -> f32;
-    fn preview_plain(&self, value: f32) -> f32;
+    fn preview_plain(&self, normalized: f32) -> f32;
     fn name(&self) -> &str;
     fn to_string(&self) -> String;
 }
