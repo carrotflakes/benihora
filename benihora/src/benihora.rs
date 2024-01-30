@@ -50,7 +50,6 @@ impl Benihora {
     ) -> f32 {
         debug_assert!((1.0..=10000.0).contains(&frequency));
         debug_assert!((0.0..=1.0).contains(&tenseness));
-        debug_assert!((0.0..=1.0).contains(&intensity));
         debug_assert!((0.0..=1.0).contains(&loudness));
 
         let tract_intensity = if self.force_turbulence {
