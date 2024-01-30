@@ -224,7 +224,9 @@ impl Plugin for MyPlugin {
 
             while let Some(e) = event {
                 if e.timing() <= count {
-                    synth.handle_event(current_time, &e);
+                    if let Some(e) = convert_event(&e) {
+                        synth.handle_event(current_time, &e);
+                    }
                     event = context.next_event();
                 } else {
                     break;
@@ -294,5 +296,24 @@ impl<'a> ui::Param for UiParam<'a> {
 
     fn to_string(&self) -> String {
         self.param.to_string()
+    }
+}
+
+fn convert_event(event: &NoteEvent<()>) -> Option<synth::Event> {
+    #[allow(unused_variables)]
+    match event {
+        NoteEvent::NoteOn { note, velocity, .. } => Some(synth::Event::NoteOn {
+            note: *note,
+            velocity: *velocity,
+        }),
+        NoteEvent::NoteOff { note, velocity, .. } => Some(synth::Event::NoteOff { note: *note }),
+        NoteEvent::PolyPressure { note, pressure, .. } => None, // = aftertouch
+        NoteEvent::MidiChannelPressure { pressure, .. } => None, // = channel aftertouch
+        NoteEvent::MidiPitchBend { value, .. } => Some(synth::Event::PitchBend {
+            value: (value * 2.0 - 1.0) / 12.0,
+        }),
+        NoteEvent::MidiCC { cc, value, .. } => None,
+        NoteEvent::MidiProgramChange { program, .. } => None,
+        _ => None,
     }
 }

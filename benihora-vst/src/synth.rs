@@ -1,7 +1,6 @@
 use crate::benihora_managed::{BenihoraManaged, Params as BenihoraParams};
 use crate::routine::{self, Routine, Runtime};
 use crate::voice_manager::VoiceManager;
-use nih_plug::prelude::NoteEvent;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -37,6 +36,13 @@ pub struct Synth {
 pub enum Control {
     Host,
     Internal,
+}
+
+#[derive(Debug, Clone)]
+pub enum Event {
+    NoteOn { note: u8, velocity: f32 },
+    NoteOff { note: u8 },
+    PitchBend { value: f32 },
 }
 
 impl Synth {
@@ -172,16 +178,11 @@ impl Synth {
         benihora.process(&self.benihora_params)
     }
 
-    pub fn handle_event(&mut self, time: f32, event: &NoteEvent<()>) {
+    pub fn handle_event(&mut self, time: f32, event: &Event) {
         let base = 0;
-        #[allow(unused_variables)]
+
         match event {
-            NoteEvent::NoteOn {
-                channel,
-                note,
-                velocity,
-                ..
-            } => {
+            Event::NoteOn { note, velocity } => {
                 let benihora = self.benihora.as_mut().unwrap();
                 if (base..base + self.tongue_poses.len() as u8).contains(note) {
                     let (index, diameter) = self.tongue_poses[*note as usize - base as usize];
@@ -226,12 +227,7 @@ impl Synth {
                     }
                 }
             }
-            NoteEvent::NoteOff {
-                channel,
-                note,
-                velocity,
-                ..
-            } => {
+            Event::NoteOff { note } => {
                 let benihora = self.benihora.as_mut().unwrap();
                 let base = base + self.tongue_poses.len() as u8;
                 if (base..base + self.other_constrictions.len() as u8).contains(note) {
@@ -264,37 +260,9 @@ impl Synth {
                     }
                 }
             }
-            NoteEvent::PolyPressure {
-                channel,
-                note,
-                pressure,
-                ..
-            } => {} // = aftertouch
-            NoteEvent::MidiChannelPressure {
-                timing,
-                channel,
-                pressure,
-            } => {} // = channel aftertouch
-            NoteEvent::MidiPitchBend {
-                timing,
-                channel,
-                value,
-            } => {
-                let pitchbend = 2.0f32.powf((*value as f32 * 2.0 - 1.0) / 12.0);
-                self.benihora.as_mut().unwrap().frequency.pitchbend = pitchbend;
+            Event::PitchBend { value } => {
+                self.benihora.as_mut().unwrap().frequency.pitchbend = 2.0f32.powf(*value);
             }
-            NoteEvent::MidiCC {
-                timing,
-                channel,
-                cc,
-                value,
-            } => {}
-            NoteEvent::MidiProgramChange {
-                timing,
-                channel,
-                program,
-            } => {}
-            _ => {}
         }
     }
 
