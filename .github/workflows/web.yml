@@ -15,6 +15,7 @@ jobs:
     steps:
       - name: Setup
         run: |
+          rustup target add wasm32-unknown-unknown
           rustup update
           cargo install --locked trunk
 
