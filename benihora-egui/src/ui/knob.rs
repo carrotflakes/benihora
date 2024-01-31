@@ -1,4 +1,4 @@
-use crate::egui::{self, CursorIcon, Label};
+use egui::{self, CursorIcon, Label};
 
 const SIZE: f32 = 18.0;
 

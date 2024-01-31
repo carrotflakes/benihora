@@ -1,0 +1,13 @@
+[package]
+name = "benihora-egui"
+version = "0.1.0"
+edition = "2021"
+authors = ["carrotflakes <carrotflakes@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/carrotflakes/benihora"
+
+[dependencies]
+benihora = { path = "../benihora" }
+egui = { version = "0.22", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+rustfft = "6.1"

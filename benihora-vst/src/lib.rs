@@ -1,23 +1,9 @@
-mod benihora_managed;
-mod routine;
-mod synth;
-mod ui;
-mod voice_manager;
-mod waveform_recorder;
-
 pub(crate) use nih_plug_egui::egui;
 
-use benihora::tract::DEFAULT_TONGUE;
+use benihora_egui::{benihora::tract::DEFAULT_TONGUE, synth, ui};
 use nih_plug::prelude::*;
 use nih_plug_egui::{create_egui_editor, EguiState};
-use std::{
-    cell::RefCell,
-    sync::{Arc, Mutex},
-};
-
-thread_local! {
-    pub static FFT_PLANNER: RefCell<rustfft::FftPlanner<f32>> = RefCell::new(rustfft::FftPlanner::new());
-}
+use std::sync::{Arc, Mutex};
 
 struct MyPlugin {
     params: Arc<MyPluginParams>,

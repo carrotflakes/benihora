@@ -1,9 +1,9 @@
 use super::knob::{knob, knob_log};
 use crate::{
-    egui::{self, Button, ComboBox, ScrollArea},
     routine::{Event, Routine, TongueIndex},
     synth::Synth,
 };
+use egui::{self, Button, ComboBox, ScrollArea};
 
 pub fn show_routines(ui: &mut egui::Ui, synth: &mut Synth) {
     let id = ui.make_persistent_id("Routines");
