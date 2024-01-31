@@ -154,6 +154,8 @@ pub fn show<P: Param>(
                 ui.checkbox(&mut synth.benihora_params.always_sound, "Always")
                     .on_hover_text("Check to always produce sound");
             });
+
+            ui.label(egui::RichText::new(format!("Build {}", build_time::build_time_utc!("%C%m%d-%H%M%S"))).weak());
         });
 
         ui.vertical(|ui| {
