@@ -2,6 +2,7 @@
 
 mod app;
 mod audio;
+mod keyboard_ui;
 mod midi;
 mod param;
 

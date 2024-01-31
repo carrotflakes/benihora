@@ -368,6 +368,26 @@ impl eframe::App for App {
                 tongue_x,
                 tongue_y,
             );
+            let current_note = synth.voice_manager.get_voice();
+
+            ui.separator();
+
+            crate::keyboard_ui::show(ui, current_note, &mut |is_up, note| {
+                if is_up {
+                    self.event_queue
+                        .lock()
+                        .unwrap()
+                        .push_back(synth::Event::NoteOff { note });
+                } else {
+                    self.event_queue
+                        .lock()
+                        .unwrap()
+                        .push_back(synth::Event::NoteOn {
+                            note,
+                            velocity: 1.0,
+                        });
+                }
+            });
 
             handle_input(ctx, &mut *self.event_queue.lock().unwrap());
         });
