@@ -160,7 +160,6 @@ impl App {
 
                 {
                     let mut state = state.lock().unwrap();
-                    state.synth.request_reset();
                     state.synth.ensure_benihora(sample_rate);
                 }
 
@@ -170,6 +169,8 @@ impl App {
                     let mut buffer = Vec::with_capacity(len);
                     let mut state = state.lock().unwrap();
                     let mut event_queue = event_queue.lock().unwrap();
+
+                    state.synth.ensure_benihora(sample_rate);
 
                     let mut event: Option<(usize, synth::Event)> =
                         event_queue.pop_front().map(|e| (0, e));
