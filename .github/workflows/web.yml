@@ -24,7 +24,7 @@ jobs:
 
       - name: Build
         run: |
-          trunk build --release
+          trunk build --release --public-url benihora
         working-directory: ./benihora-vst-web
 
       - name: Deploy
