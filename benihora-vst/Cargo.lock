@@ -151,23 +151,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "benihora-egui"
+name = "benihora-vst"
+version = "0.1.0"
+dependencies = [
+ "benihora-vst-ui",
+ "nih_plug",
+ "nih_plug_egui",
+ "serde",
+]
+
+[[package]]
+name = "benihora-vst-ui"
 version = "0.1.0"
 dependencies = [
  "benihora",
  "build-time",
  "egui",
  "rustfft",
- "serde",
-]
-
-[[package]]
-name = "benihora-vst"
-version = "0.1.0"
-dependencies = [
- "benihora-egui",
- "nih_plug",
- "nih_plug_egui",
  "serde",
 ]
 

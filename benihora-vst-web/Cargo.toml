@@ -9,7 +9,7 @@ repository = "https://github.com/carrotflakes/benihora"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-benihora-egui = { path = "../benihora-egui" }
+benihora-vst-ui = { path = "../benihora-vst-ui" }
 cpal = { version = "0.15", features = ["wasm-bindgen"] }
 
 egui = { version = "0.22", features = [] }

@@ -1,6 +1,6 @@
 pub(crate) use nih_plug_egui::egui;
 
-use benihora_egui::{benihora::tract::DEFAULT_TONGUE, synth, ui};
+use benihora_vst_ui::{benihora::tract::DEFAULT_TONGUE, synth, ui};
 use nih_plug::prelude::*;
 use nih_plug_egui::{create_egui_editor, EguiState};
 use std::sync::{Arc, Mutex};

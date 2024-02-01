@@ -1,3 +1,3 @@
-# benihora-egui
+# benihora-vst-ui
 
 GUI for Benihora VST Plugin.

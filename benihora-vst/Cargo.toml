@@ -19,7 +19,7 @@ nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", rev = "eb968ba
 nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git", rev = "eb968ba44666d96cb2349ad877fcdcbccb993f8c" }
 serde = "1.0"
 
-benihora-egui = { path = "../benihora-egui" }
+benihora-vst-ui = { path = "../benihora-vst-ui" }
 
 [profile.release]
 lto = "thin"

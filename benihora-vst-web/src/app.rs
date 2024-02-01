@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use benihora_egui::{benihora::tract::DEFAULT_TONGUE, synth};
+use benihora_vst_ui::{benihora::tract::DEFAULT_TONGUE, synth};
 use egui::Id;
 
 use crate::param::{FloatParam, FloatRange};
@@ -30,7 +30,7 @@ pub struct App {
 
 #[derive(serde::Deserialize, serde::Serialize)]
 struct State {
-    synth: benihora_egui::synth::Synth,
+    synth: benihora_vst_ui::synth::Synth,
 
     vibrato_amount: FloatParam,
     vibrato_rate: FloatParam,
@@ -45,7 +45,7 @@ impl Default for App {
         Self {
             message: "".to_owned(),
             state: Arc::new(Mutex::new(State {
-                synth: benihora_egui::synth::Synth::new(),
+                synth: benihora_vst_ui::synth::Synth::new(),
 
                 vibrato_amount: FloatParam::new(
                     "Vibrato Amount",
@@ -293,7 +293,7 @@ impl eframe::App for App {
                 tongue_x,
                 tongue_y,
             }: &mut State = &mut *state;
-            benihora_egui::ui::show(
+            benihora_vst_ui::ui::show(
                 ui,
                 synth,
                 vibrato_amount,

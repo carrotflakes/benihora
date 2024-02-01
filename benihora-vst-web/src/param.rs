@@ -1,4 +1,4 @@
-use benihora_egui;
+use benihora_vst_ui;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub(crate) struct FloatParam {
@@ -31,7 +31,7 @@ impl FloatParam {
     }
 }
 
-impl benihora_egui::ui::Param for FloatParam {
+impl benihora_vst_ui::ui::Param for FloatParam {
     fn set(&mut self, value: f32) {
         self.value = value;
         self.normalized_value = self.range.normalize(value);
