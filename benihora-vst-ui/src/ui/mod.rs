@@ -29,7 +29,7 @@ pub fn show<P: Param>(
                 if ui
                     .add(
                         egui::widgets::DragValue::new(&mut synth.sound_speed)
-                            .clamp_range(1.0..=6.0),
+                            .clamp_range(1.0..=6.0).speed(0.1),
                     )
                     .changed()
                 {
