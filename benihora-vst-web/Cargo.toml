@@ -1,0 +1,42 @@
+[package]
+name = "benihora-vst-web"
+version = "0.1.0"
+edition = "2021"
+authors = ["carrotflakes <carrotflakes@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/carrotflakes/benihora"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+benihora-vst-ui = { path = "../benihora-vst-ui" }
+cpal = { version = "0.15", features = ["wasm-bindgen"] }
+
+egui = { version = "0.22", features = [] }
+eframe = { version = "0.22", default-features = false, features = [
+    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
+    "default_fonts", # Embed the default egui fonts.
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "persistence",   # Enable restoring app state when restarting the app.
+] }
+log = "0.4"
+
+# You only need serde if you want app persistence:
+serde = { version = "1", features = ["derive"] }
+
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.11"
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3", features = ["Permissions", "MidiAccess", "MidiInput", "MidiInputMap", "MidiMessageEvent"] }
+wasm-bindgen-futures = "0.4"
+
+
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2

@@ -1,0 +1,34 @@
+name: Deploy benihora-vst-web
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Setup
+        run: |
+          rustup target add wasm32-unknown-unknown
+          rustup update
+          cargo install --locked trunk
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          trunk build --release --public-url benihora
+        working-directory: ./benihora-vst-web
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./benihora-vst-web/dist
