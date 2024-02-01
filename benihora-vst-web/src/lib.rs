@@ -3,6 +3,7 @@
 mod app;
 mod audio;
 mod keyboard_ui;
+#[cfg(target_arch = "wasm32")]
 mod midi;
 mod param;
 

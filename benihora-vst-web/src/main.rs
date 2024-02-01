@@ -9,9 +9,10 @@ fn main() -> eframe::Result<()> {
     let mut native_options = eframe::NativeOptions::default();
     native_options.default_theme = eframe::Theme::Dark;
     native_options.follow_system_theme = false;
+    native_options.initial_window_size = Some(egui::vec2(800.0, 600.0));
 
     eframe::run_native(
-        "eframe template",
+        "Benihora VST standalone",
         native_options,
         Box::new(|cc| Box::new(benihora_vst_web::App::new(cc))),
     )

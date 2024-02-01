@@ -1,12 +1,10 @@
 use std::{
-    cell::OnceCell,
     collections::VecDeque,
     sync::{Arc, Mutex},
 };
 
 use benihora_egui::{benihora::tract::DEFAULT_TONGUE, synth};
 use egui::Id;
-use web_sys::wasm_bindgen::JsCast;
 
 use crate::param::{FloatParam, FloatRange};
 
@@ -23,15 +21,11 @@ pub struct App {
     audio_result: Option<crate::audio::AudioResult>,
 
     #[serde(skip)]
-    midi: Arc<Mutex<crate::midi::MidiState>>,
-
-    #[serde(skip)]
     event_queue: Arc<Mutex<VecDeque<synth::Event>>>,
 
+    #[cfg(target_arch = "wasm32")]
     #[serde(skip)]
-    midi_handler: OnceCell<
-        web_sys::wasm_bindgen::closure::Closure<dyn FnMut(web_sys::wasm_bindgen::JsValue)>,
-    >,
+    midi: Arc<Mutex<crate::midi::MidiState>>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -93,9 +87,9 @@ impl Default for App {
                 ),
             })),
             audio_result: None,
-            midi: Arc::new(Mutex::new(Default::default())),
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
-            midi_handler: OnceCell::new(),
+            #[cfg(target_arch = "wasm32")]
+            midi: Arc::new(Mutex::new(Default::default())),
         }
     }
 }
@@ -116,34 +110,28 @@ impl App {
         #[cfg(not(target_arch = "wasm32"))]
         this.start_audio();
 
-        let event_queue = this.event_queue.clone();
-        this.midi_handler
-            .set(web_sys::wasm_bindgen::closure::Closure::<
-                dyn FnMut(web_sys::wasm_bindgen::JsValue),
-            >::new(
-                move |event: web_sys::wasm_bindgen::JsValue| {
-                    let event = event.dyn_into::<web_sys::MidiMessageEvent>().unwrap();
-                    if let Ok(data) = event.data() {
-                        // log::info!("MIDI event: {:?}", data);
-                        match data.as_slice() {
-                            [144, nn, velocity] => {
-                                event_queue.lock().unwrap().push_back(synth::Event::NoteOn {
-                                    note: *nn,
-                                    velocity: *velocity as f32 / 127.0,
-                                });
-                            }
-                            [128, nn, _] => {
-                                event_queue
-                                    .lock()
-                                    .unwrap()
-                                    .push_back(synth::Event::NoteOff { note: *nn });
-                            }
-                            _ => {}
-                        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let event_queue = this.event_queue.clone();
+            this.midi
+                .lock()
+                .unwrap()
+                .init_midi_handler(move |data| match data {
+                    [144, nn, velocity] => {
+                        event_queue.lock().unwrap().push_back(synth::Event::NoteOn {
+                            note: *nn,
+                            velocity: *velocity as f32 / 127.0,
+                        });
                     }
-                },
-            ))
-            .unwrap();
+                    [128, nn, _] => {
+                        event_queue
+                            .lock()
+                            .unwrap()
+                            .push_back(synth::Event::NoteOff { note: *nn });
+                    }
+                    _ => {}
+                });
+        }
 
         this
     }
@@ -216,62 +204,6 @@ impl App {
             }
         };
     }
-
-    fn midi_settings(&mut self, ui: &mut egui::Ui) {
-        ui.heading("MIDI input devices:");
-
-        if ui.button("Update").clicked() {
-            let midi_ref = self.midi.clone();
-            let closure = web_sys::wasm_bindgen::closure::Closure::new(
-                move |midi_access: web_sys::wasm_bindgen::JsValue| {
-                    log::info!("midi_access: {:?}", midi_access);
-                    let midi_access = midi_access.dyn_into::<web_sys::MidiAccess>().unwrap();
-                    let mut midi = midi_ref.lock().unwrap();
-                    for input in midi_access.inputs().values() {
-                        let input = input.unwrap();
-                        midi.inputs
-                            .push(input.dyn_into::<web_sys::MidiInput>().unwrap());
-                    }
-                },
-            );
-            let promise = web_sys::window()
-                .unwrap()
-                .navigator()
-                .request_midi_access()
-                .unwrap()
-                .then(&closure);
-            let future = wasm_bindgen_futures::JsFuture::from(promise);
-            wasm_bindgen_futures::spawn_local(async {
-                future.await.unwrap();
-                drop(closure);
-            });
-        }
-
-        let midi = self.midi.lock().unwrap();
-        if midi.inputs.is_empty() {
-            ui.label("No devices found.");
-            return;
-        }
-
-        for (i, midi_input) in midi.inputs.iter().enumerate() {
-            ui.group(|ui| {
-                ui.label(format!(
-                    "{}: {}",
-                    i + 1,
-                    midi_input.name().unwrap_or_default()
-                ));
-                let mut connected = midi_input.onmidimessage().is_some();
-                if ui.checkbox(&mut connected, "Connect").changed() {
-                    if connected {
-                        let closure = self.midi_handler.get().unwrap().as_ref().unchecked_ref();
-                        midi_input.set_onmidimessage(Some(closure));
-                    } else {
-                        midi_input.set_onmidimessage(None);
-                    }
-                }
-            });
-        }
-    }
 }
 
 impl eframe::App for App {
@@ -285,6 +217,7 @@ impl eframe::App for App {
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
+        #[cfg(target_arch = "wasm32")]
         let show_midi_settings_id = Id::new("showMidiSettings");
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -295,12 +228,12 @@ impl eframe::App for App {
 
                 ui.add_space(8.0);
 
-                // NOTE: no File->Quit on web pages!
-                let is_web = cfg!(target_arch = "wasm32");
-                if !is_web {
+                #[cfg(not(target_arch = "wasm32"))]
+                {
                     ui.menu_button("File", |ui| {
                         if ui.button("Quit").clicked() {
                             // ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                            _frame.close();
                         }
                     });
                     ui.add_space(16.0);
@@ -334,11 +267,12 @@ impl eframe::App for App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            #[cfg(target_arch = "wasm32")]
             if ui.data(|d| {
                 d.get_temp::<bool>(show_midi_settings_id)
                     .unwrap_or_default()
             }) {
-                self.midi_settings(ui);
+                crate::midi::midi_settings_ui(&mut self.midi, ui);
                 return;
             }
 
