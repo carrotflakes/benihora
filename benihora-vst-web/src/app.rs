@@ -251,8 +251,14 @@ impl eframe::App for App {
                     ui.data_mut(|d| d.insert_temp(show_midi_settings_id, show_midi_settings));
                 }
 
-                if ui.button("Start audio").clicked() {
-                    self.start_audio();
+                if self.audio_result.is_some() {
+                    if ui.button("Stop audio").clicked() {
+                        self.audio_result = None;
+                    }
+                } else {
+                    if ui.button("Start audio").clicked() {
+                        self.start_audio();
+                    }
                 }
 
                 if let Some(ar) = &self.audio_result {
@@ -262,6 +268,11 @@ impl eframe::App for App {
                     ));
                 } else {
                     ui.label("Audio not started.");
+                }
+
+                if !self.message.is_empty() {
+                    ui.separator();
+                    ui.label(&self.message);
                 }
             });
         });
@@ -277,7 +288,7 @@ impl eframe::App for App {
             }
 
             if self.audio_result.is_none() {
-                if ui.button("Start!").clicked() {
+                if ui.button("Start").clicked() {
                     self.start_audio();
                 }
                 return;

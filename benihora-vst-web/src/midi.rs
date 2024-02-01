@@ -6,7 +6,7 @@ use web_sys::wasm_bindgen::JsCast;
 
 #[derive(Default)]
 pub struct MidiState {
-    pub inputs: Vec<web_sys::MidiInput>,
+    pub inputs: Vec<(bool, web_sys::MidiInput)>,
     pub midi_handler: OnceCell<
         web_sys::wasm_bindgen::closure::Closure<dyn FnMut(web_sys::wasm_bindgen::JsValue)>,
     >,
@@ -40,10 +40,18 @@ pub fn midi_settings_ui(state: &mut Arc<Mutex<MidiState>>, ui: &mut egui::Ui) {
                 log::info!("midi_access: {:?}", midi_access);
                 let midi_access = midi_access.dyn_into::<web_sys::MidiAccess>().unwrap();
                 let mut midi = midi_ref.lock().unwrap();
+                midi.inputs
+                    .iter_mut()
+                    .for_each(|(exists, _)| *exists = false);
                 for input in midi_access.inputs().values() {
                     let input = input.unwrap();
-                    midi.inputs
-                        .push(input.dyn_into::<web_sys::MidiInput>().unwrap());
+                    let input = input.dyn_into::<web_sys::MidiInput>().unwrap();
+                    let mi = midi.inputs.iter_mut().find(|(_, i)| i.id() == input.id());
+                    if let Some(mi) = mi {
+                        mi.0 = true;
+                    } else {
+                        midi.inputs.push((true, input));
+                    }
                 }
             },
         );
@@ -66,21 +74,25 @@ pub fn midi_settings_ui(state: &mut Arc<Mutex<MidiState>>, ui: &mut egui::Ui) {
         return;
     }
 
-    for (i, midi_input) in midi.inputs.iter().enumerate() {
+    for (i, (exists, midi_input)) in midi.inputs.iter().enumerate() {
         ui.group(|ui| {
             ui.label(format!(
                 "{}: {}",
                 i + 1,
-                midi_input.name().unwrap_or_default()
+                midi_input.name().unwrap_or_default(),
             ));
-            let mut connected = midi_input.onmidimessage().is_some();
-            if ui.checkbox(&mut connected, "Connect").changed() {
-                if connected {
-                    let closure = midi.midi_handler.get().unwrap().as_ref().unchecked_ref();
-                    midi_input.set_onmidimessage(Some(closure));
-                } else {
-                    midi_input.set_onmidimessage(None);
+            if *exists {
+                let mut connected = midi_input.onmidimessage().is_some();
+                if ui.checkbox(&mut connected, "Connect").changed() {
+                    if connected {
+                        let closure = midi.midi_handler.get().unwrap().as_ref().unchecked_ref();
+                        midi_input.set_onmidimessage(Some(closure));
+                    } else {
+                        midi_input.set_onmidimessage(None);
+                    }
                 }
+            } else {
+                ui.label("Disconnected");
             }
         });
     }
