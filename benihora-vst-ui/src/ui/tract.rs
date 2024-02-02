@@ -6,6 +6,7 @@ enum Part {
     Tongue,
     Constriction(usize),
     Velum,
+    TongueArea,
 }
 
 pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
@@ -16,6 +17,9 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         ..
     } = synth;
     let benihora = benihora.as_mut().unwrap();
+
+    let drag_mode_id = ui.make_persistent_id("tract_drag");
+    let mut drag_mode = ui.data(|d| d.get_temp::<Option<Part>>(drag_mode_id).unwrap_or_default());
 
     let pointer = ui.input(|i| i.pointer.hover_pos());
     let mut hover = None;
@@ -71,6 +75,24 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
             ],
             stroke,
         );
+
+        let tongue_area_rect = egui::Rect::from_min_max(
+            to_screen * egui::pos2(TONGUE_X_RANGE.start, TONGUE_Y_RANGE.start + 4.0),
+            to_screen * egui::pos2(TONGUE_X_RANGE.end, TONGUE_Y_RANGE.end + 4.0),
+        );
+        if tongue_area_rect
+            .expand(2.5)
+            .contains(pointer.unwrap_or_default())
+        {
+            hover = Some(Part::TongueArea);
+        }
+        if hover == Some(Part::TongueArea) || drag_mode == Some(Part::Tongue) {
+            ui.painter().rect_filled(
+                tongue_area_rect.expand(2.5),
+                5.0,
+                egui::Color32::RED.linear_multiply(0.05),
+            );
+        }
 
         // tongue
         for (i, pos) in tongue_poses.iter().enumerate() {
@@ -142,10 +164,12 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         res.rect,
         egui::Rect::from_x_y_ranges(0.0..=45.0, 0.0..=10.0),
     );
-    let drag_mode_id = ui.make_persistent_id("tract_drag");
     if res.drag_started() {
-        let drag_mode = hover.unwrap_or(Part::Tongue);
-        ui.data_mut(|d| d.insert_temp(drag_mode_id, Some(drag_mode)));
+        drag_mode = if hover == Some(Part::TongueArea) {
+            Some(Part::Tongue)
+        } else {
+            hover
+        };
     }
     if res.clicked() {
         match hover {
@@ -162,16 +186,15 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         }
     }
     if res.drag_released() {
-        let drag_mode = ui.data(|d| d.get_temp::<Option<Part>>(drag_mode_id).unwrap_or(None));
         match drag_mode {
             Some(Part::Constriction(i)) => {
                 benihora.benihora.tract.source.other_constrictions[i].1 = 10.0;
             }
             _ => (),
         }
+        drag_mode = None;
     }
     if res.dragged() {
-        let drag_mode = ui.data(|d| d.get_temp::<Option<Part>>(drag_mode_id).unwrap_or(None));
         match drag_mode {
             Some(Part::Tongue) => {
                 if let Some(pos) = pointer {
@@ -181,8 +204,10 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
                     //     .tract
                     //     .source
                     //     .tongue_clamp(pos.x as f32, (pos.y - 4.0) as f32);
-                    benihora.tract.tongue_target =
-                        ((pos.x).clamp(12.0, 28.0), (pos.y - 4.0).clamp(2.0, 4.0));
+                    benihora.tract.tongue_target = (
+                        (pos.x).clamp(TONGUE_X_RANGE.start, TONGUE_X_RANGE.end),
+                        (pos.y - 4.0).clamp(TONGUE_Y_RANGE.start, TONGUE_Y_RANGE.end),
+                    );
                 }
             }
             Some(Part::Constriction(ci)) => {
@@ -194,5 +219,10 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
             _ => {}
         }
     }
+    ui.data_mut(|d| d.insert_temp(drag_mode_id, drag_mode));
+
     res
 }
+
+const TONGUE_X_RANGE: std::ops::Range<f32> = 12.0..28.0;
+const TONGUE_Y_RANGE: std::ops::Range<f32> = 2.0..4.0;
