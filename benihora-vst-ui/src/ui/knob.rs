@@ -45,10 +45,22 @@ pub fn knob_ui(
     if ui.is_rect_visible(rect) {
         let visuals = ui.style().interact_selectable(&response, true);
         let rect = rect.expand(visuals.expansion);
+        let center = rect.center();
         let radius = 0.5 * rect.height();
+
+        for r in [0.6, -0.1] {
+            let a = std::f32::consts::TAU * r;
+            let v = egui::vec2(a.cos(), -a.sin()) * (radius * 1.2);
+            ui.painter().circle(
+                center + v,
+                1.0,
+                visuals.fg_stroke.color.linear_multiply(0.1),
+                egui::Stroke::NONE,
+            );
+        }
+
         ui.painter()
             .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
-        let center = rect.center();
         let a = (*value - range.start) / (range.end - range.start);
         let a = std::f32::consts::TAU * (0.6 - a * 0.7);
         let v = egui::vec2(a.cos(), -a.sin()) * (radius * 0.75);
@@ -146,10 +158,22 @@ pub fn knob_param<'a, P: Param>(param: &'a mut P) -> impl egui::Widget + 'a {
         if ui.is_rect_visible(rect) {
             let visuals = ui.style().interact_selectable(&response, true);
             let rect = rect.expand(visuals.expansion);
+            let center = rect.center();
             let radius = 0.5 * rect.height();
+
+            for r in [0.6, -0.1] {
+                let a = std::f32::consts::TAU * r;
+                let v = egui::vec2(a.cos(), -a.sin()) * (radius * 1.2);
+                ui.painter().circle(
+                    center + v,
+                    1.0,
+                    visuals.fg_stroke.color.linear_multiply(0.1),
+                    egui::Stroke::NONE,
+                );
+            }
+
             ui.painter()
                 .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
-            let center = rect.center();
             let a = param.modulated_normalized_value();
             let a = std::f32::consts::TAU * (0.6 - a * 0.7);
             let v = egui::vec2(a.cos(), -a.sin()) * (radius * 0.75);
