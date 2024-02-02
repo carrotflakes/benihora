@@ -51,7 +51,7 @@ impl Params {
         Self {
             always_sound: false,
             frequency_pid: pid_controller::PIDParam::new(50.0, 20.0, 0.0),
-            intensity_adsr: [0.02, 0.05, 0.75, 0.05],
+            intensity_adsr: [0.02, 0.1, 0.8, 0.05],
             intensity_pid: pid_controller::PIDParam::new(10.0, 100.0, 0.0), // recomend kd = 0.0
             noteon_intensity: 0.9,
             frequency_wobble_amount: 0.1,

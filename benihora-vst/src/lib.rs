@@ -51,8 +51,8 @@ impl Default for MyPluginParams {
                 util::db_to_gain(0.0),
                 FloatRange::Skewed {
                     min: util::db_to_gain(-30.0),
-                    max: util::db_to_gain(30.0),
-                    factor: FloatRange::gain_skew_factor(-30.0, 30.0),
+                    max: util::db_to_gain(10.0),
+                    factor: FloatRange::gain_skew_factor(-30.0, 10.0),
                 },
             )
             .with_smoother(SmoothingStyle::Logarithmic(50.0))
@@ -156,6 +156,7 @@ impl Plugin for MyPlugin {
                         &mut UiParam::new(&state.tenseness_wobble, setter),
                         &mut UiParam::new(&state.tongue_x, setter),
                         &mut UiParam::new(&state.tongue_y, setter),
+                        &mut UiParam::new(&state.gain, setter),
                     );
                 });
             },
@@ -207,6 +208,7 @@ impl Plugin for MyPlugin {
                 synth.benihora.as_mut().unwrap().tract.tongue_target.1 =
                     self.params.tongue_y.smoothed.next();
             }
+            let gain = self.params.gain.smoothed.next();
 
             while let Some(e) = event {
                 if e.timing() <= count {
@@ -220,7 +222,7 @@ impl Plugin for MyPlugin {
             }
             count += 1;
 
-            *channel_samples.get_mut(0).unwrap() = synth.process(dtime);
+            *channel_samples.get_mut(0).unwrap() = synth.process(dtime) * gain;
         }
 
         ProcessStatus::Normal

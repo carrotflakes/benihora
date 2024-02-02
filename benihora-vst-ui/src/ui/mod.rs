@@ -22,10 +22,12 @@ pub fn show<P: Param>(
     tenseness_wobble: &mut P,
     tongue_x: &mut P,
     tongue_y: &mut P,
+    gain: &mut P,
 ) {
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
+                ui.add(knob_param(gain));
                 if ui
                     .add(
                         egui::widgets::DragValue::new(&mut synth.sound_speed)
@@ -60,7 +62,7 @@ pub fn show<P: Param>(
                 } else {
                     ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[0], "Intensity Attack"));
                     ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[1], "Intensity Decay"));
-                    ui.add(knob_log(0.001..1.0, &mut synth.benihora_params.intensity_adsr[2], "Intensity Sustain"));
+                    ui.add(knob(0.01..1.0, &mut synth.benihora_params.intensity_adsr[2], "Intensity Sustain"));
                     ui.add(knob(0.001..3.0, &mut synth.benihora_params.intensity_adsr[3], "Intensity Release"));
                 }
             });

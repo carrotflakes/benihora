@@ -6,7 +6,7 @@ use std::{
 use benihora_vst_ui::{benihora::tract::DEFAULT_TONGUE, synth};
 use egui::Id;
 
-use crate::param::{FloatParam, FloatRange};
+use crate::param::{db_to_gain, FloatParam, FloatRange};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -38,6 +38,7 @@ struct State {
     tenseness_wobble: FloatParam,
     tongue_x: FloatParam,
     tongue_y: FloatParam,
+    gain: FloatParam,
 }
 
 impl Default for App {
@@ -84,6 +85,15 @@ impl Default for App {
                     "Tongue Y",
                     DEFAULT_TONGUE.1,
                     FloatRange::Linear { min: 2.0, max: 4.0 },
+                ),
+                gain: FloatParam::new(
+                    "Gain",
+                    db_to_gain(0.0),
+                    FloatRange::Skewed {
+                        min: db_to_gain(-30.0),
+                        max: db_to_gain(10.0),
+                        factor: FloatRange::gain_skew_factor(-30.0, 10.0),
+                    },
                 ),
             })),
             audio_result: None,
@@ -178,6 +188,7 @@ impl App {
                             state.synth.benihora.as_mut().unwrap().tract.tongue_target.1 =
                                 state.tongue_y.smoothed_next();
                         }
+                        let gain = state.gain.smoothed_next();
 
                         while let Some((timing, e)) = &event {
                             if *timing <= i {
@@ -188,7 +199,7 @@ impl App {
                             }
                         }
 
-                        let sample = state.synth.process(dtime);
+                        let sample = state.synth.process(dtime) * gain;
                         for _ in 0..channels {
                             buffer.push(sample);
                         }
@@ -303,6 +314,7 @@ impl eframe::App for App {
                 tenseness_wobble,
                 tongue_x,
                 tongue_y,
+                gain,
             }: &mut State = &mut *state;
             benihora_vst_ui::ui::show(
                 ui,
@@ -313,6 +325,7 @@ impl eframe::App for App {
                 tenseness_wobble,
                 tongue_x,
                 tongue_y,
+                gain,
             );
             let current_note = synth.voice_manager.get_voice();
 

@@ -76,4 +76,24 @@ impl FloatRange {
             }
         }
     }
+
+    pub fn gain_skew_factor(min_db: f32, max_db: f32) -> f32 {
+        debug_assert!(min_db < max_db);
+
+        let min_gain = db_to_gain(min_db);
+        let max_gain = db_to_gain(max_db);
+        let middle_db = (max_db + min_db) / 2.0;
+        let middle_gain = db_to_gain(middle_db);
+
+        0.5f32.log((middle_gain - min_gain) / (max_gain - min_gain))
+    }
+}
+
+#[inline]
+pub fn db_to_gain(dbs: f32) -> f32 {
+    if dbs > -100.0 {
+        10.0f32.powf(dbs * 0.05)
+    } else {
+        0.0
+    }
 }
