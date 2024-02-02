@@ -17,7 +17,9 @@ pub struct BenihoraManaged {
     pub sound: bool,
     pub frequency: Frequency,
     pub tenseness: Tenseness,
-    pub intensity: Intensity,
+    intensity_adsr: IntensityAdsr,
+    intensity_pid: IntensityPid,
+    pub intensity_pid_enabled: bool,
     pub loudness: Loudness,
     pub tract: tract::Tract,
     pub benihora: Benihora,
@@ -34,6 +36,7 @@ pub struct BenihoraManaged {
 pub struct Params {
     pub always_sound: bool,
     pub frequency_pid: pid_controller::PIDParam,
+    pub intensity_adsr: [f32; 4],
     pub intensity_pid: pid_controller::PIDParam,
     pub noteon_intensity: f32,
     pub frequency_wobble_amount: f32,
@@ -48,6 +51,7 @@ impl Params {
         Self {
             always_sound: false,
             frequency_pid: pid_controller::PIDParam::new(50.0, 20.0, 0.0),
+            intensity_adsr: [0.02, 0.05, 0.75, 0.05],
             intensity_pid: pid_controller::PIDParam::new(10.0, 100.0, 0.0), // recomend kd = 0.0
             noteon_intensity: 0.9,
             frequency_wobble_amount: 0.1,
@@ -66,7 +70,9 @@ impl BenihoraManaged {
             sound: false,
             frequency: Frequency::new(interval, seed, 140.0, 1.0 / interval),
             tenseness: Tenseness::new(interval, seed, 0.6),
-            intensity: Intensity::new(sample_rate),
+            intensity_pid: IntensityPid::new(sample_rate),
+            intensity_adsr: IntensityAdsr::new(sample_rate),
+            intensity_pid_enabled: false,
             loudness: Loudness::new(0.6f32.powf(0.25)),
             tract: tract::Tract::new(),
             benihora: Benihora::new(sound_speed, sample_rate, over_sample, seed, false),
@@ -84,6 +90,14 @@ impl BenihoraManaged {
         let tenseness = tenseness.clamp(0.0, 1.0);
         self.tenseness.target_tenseness = tenseness;
         self.loudness.target = tenseness.powf(0.25);
+    }
+
+    pub fn get_intensity(&self) -> f32 {
+        if self.intensity_pid_enabled {
+            self.intensity_pid.get()
+        } else {
+            self.intensity_adsr.get()
+        }
     }
 
     pub fn process(&mut self, params: &Params) -> f32 {
@@ -107,14 +121,20 @@ impl BenihoraManaged {
         let lambda = self.update_timer.progress();
         self.update_timer.update(self.dtime);
 
-        let intensity = self.intensity.process(
-            &params.intensity_pid,
-            if self.sound | params.always_sound {
-                params.noteon_intensity
-            } else {
-                0.0
-            },
-        );
+        let intensity = if self.intensity_pid_enabled {
+            self.intensity_pid.process(
+                &params.intensity_pid,
+                if self.sound | params.always_sound {
+                    params.noteon_intensity
+                } else {
+                    0.0
+                },
+            )
+        } else {
+            self.intensity_adsr
+                .process(&params.intensity_adsr, self.sound | params.always_sound)
+                * params.noteon_intensity
+        };
         let frequency = self.frequency.get(lambda);
         let tenseness = self.tenseness.get(lambda);
         let loudness = self.loudness.process(self.dtime);
@@ -220,13 +240,13 @@ impl Frequency {
     }
 }
 
-pub struct Intensity {
+pub struct IntensityPid {
     value: f32,
     bias: f32,
     pid: pid_controller::PIDController,
 }
 
-impl Intensity {
+impl IntensityPid {
     pub fn new(sample_rate: f32) -> Self {
         Self {
             value: 0.0,
@@ -242,6 +262,47 @@ impl Intensity {
     pub fn process(&mut self, pid: &pid_controller::PIDParam, target: f32) -> f32 {
         self.value += self.pid.process(pid, target - self.value) + self.bias * self.pid.dtime;
         self.value = self.value.max(0.0);
+        self.value
+    }
+}
+
+pub struct IntensityAdsr {
+    elapsed: f32,
+    dtime: f32,
+    value: f32,
+}
+
+impl IntensityAdsr {
+    pub fn new(sample_rate: f32) -> Self {
+        Self {
+            elapsed: 0.0,
+            dtime: 1.0 / sample_rate,
+            value: 0.0,
+        }
+    }
+
+    pub fn get(&self) -> f32 {
+        self.value
+    }
+
+    pub fn process(&mut self, adsr: &[f32; 4], sound: bool) -> f32 {
+        if sound {
+            self.elapsed += self.dtime;
+            self.value = if self.elapsed < adsr[0] {
+                self.value.max(self.elapsed / adsr[0])
+            } else if self.elapsed < adsr[0] + adsr[1] {
+                lerp(1.0, adsr[2], (self.elapsed - adsr[0]) / adsr[1])
+            } else {
+                adsr[2]
+            };
+        } else {
+            self.elapsed = 0.0;
+            self.value = if self.value > 0.0 {
+                self.value - self.dtime / adsr[3]
+            } else {
+                0.0
+            };
+        }
         self.value
     }
 }

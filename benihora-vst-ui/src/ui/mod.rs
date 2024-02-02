@@ -40,6 +40,31 @@ pub fn show<P: Param>(
 
             ui.label("Glottis");
             ui.horizontal(|ui| {
+                ui.add(knob(0.0..1.0, &mut synth.benihora_params.noteon_intensity, "Intensity"));
+                if synth.benihora.as_mut().unwrap().intensity_pid_enabled {
+                    ui.add(knob_log(
+                    1.0..1000.0,
+                        &mut synth.benihora_params.intensity_pid.kp,
+                        "Intensity kp",
+                    ));
+                    ui.add(knob_log(
+                        0.1..1000.0,
+                        &mut synth.benihora_params.intensity_pid.ki,
+                        "Intensity ki",
+                    ));
+                    ui.add(knob(
+                        -0.9..0.9,
+                        &mut synth.benihora_params.intensity_pid.kd,
+                        "Intensity kd",
+                    ));
+                } else {
+                    ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[0], "Intensity Attack"));
+                    ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[1], "Intensity Decay"));
+                    ui.add(knob_log(0.001..1.0, &mut synth.benihora_params.intensity_adsr[2], "Intensity Sustain"));
+                    ui.add(knob(0.001..3.0, &mut synth.benihora_params.intensity_adsr[3], "Intensity Release"));
+                }
+            });
+            ui.horizontal(|ui| {
                 ui.add(knob_log(
                     1.0..100.0,
                     &mut synth.benihora_params.frequency_pid.kp,
@@ -60,25 +85,7 @@ pub fn show<P: Param>(
                 ui.add(knob_param(frequency_wobble));
             });
             ui.horizontal(|ui| {
-                ui.add(knob(0.0..1.0, &mut synth.benihora_params.noteon_intensity, "Intensity"));
-                ui.add(knob_log(
-                1.0..1000.0,
-                    &mut synth.benihora_params.intensity_pid.kp,
-                    "Intensity kp",
-                ));
-                ui.add(knob_log(
-                    0.1..1000.0,
-                    &mut synth.benihora_params.intensity_pid.ki,
-                    "Intensity ki",
-                ));
-                ui.add(knob(
-                    -0.9..0.9,
-                    &mut synth.benihora_params.intensity_pid.kd,
-                    "Intensity kd",
-                ));
                 ui.add(knob_param(tenseness_wobble));
-            });
-            ui.horizontal(|ui| {
                 ui.add(knob(
                     0.0..10.0,
                     &mut synth.benihora_params.aspiration_level,
@@ -102,6 +109,11 @@ pub fn show<P: Param>(
                     synth.benihora.as_mut().unwrap().frequency.set(440.0, true);
                 }
             });
+
+            ui.add(egui::widgets::Checkbox::new(
+                &mut synth.benihora.as_mut().unwrap().intensity_pid_enabled,
+                "Use PID intensity",
+            ));
 
             ui.horizontal(|ui| {
                 ui.label("Tongue");

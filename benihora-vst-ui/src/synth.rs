@@ -212,7 +212,7 @@ impl Synth {
                 }
 
                 let frequency_reset_time = 0.25;
-                let muted = benihora.intensity.get() < 0.01
+                let muted = benihora.get_intensity() < 0.01
                     && frequency_reset_time - self.elapsed_from_note_off < 0.0;
                 self.voice_manager.noteon(*note);
                 if let Some(note) = self.voice_manager.get_voice() {
