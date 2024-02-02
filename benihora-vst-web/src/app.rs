@@ -41,61 +41,67 @@ struct State {
     gain: FloatParam,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            synth: benihora_vst_ui::synth::Synth::new(),
+
+            vibrato_amount: FloatParam::new(
+                "Vibrato Amount",
+                0.0,
+                FloatRange::Linear { min: 0.0, max: 0.1 },
+            ),
+            vibrato_rate: FloatParam::new(
+                "Vibrato Rate",
+                6.0,
+                FloatRange::Skewed {
+                    min: 0.1,
+                    max: 20.0,
+                    factor: 1.0,
+                },
+            ),
+            frequency_wobble: FloatParam::new(
+                "Frequency Wobble",
+                0.1,
+                FloatRange::Linear { min: 0.0, max: 5.0 },
+            ),
+            tenseness_wobble: FloatParam::new(
+                "Tenseness Wobble",
+                1.0,
+                FloatRange::Linear { min: 0.0, max: 5.0 },
+            ),
+
+            tongue_x: FloatParam::new(
+                "Tongue X",
+                DEFAULT_TONGUE.0,
+                FloatRange::Linear {
+                    min: 12.0,
+                    max: 28.0,
+                },
+            ),
+            tongue_y: FloatParam::new(
+                "Tongue Y",
+                DEFAULT_TONGUE.1,
+                FloatRange::Linear { min: 2.0, max: 4.0 },
+            ),
+            gain: FloatParam::new(
+                "Gain",
+                db_to_gain(0.0),
+                FloatRange::Skewed {
+                    min: db_to_gain(-30.0),
+                    max: db_to_gain(10.0),
+                    factor: FloatRange::gain_skew_factor(-30.0, 10.0),
+                },
+            ),
+        }
+    }
+}
+
 impl Default for App {
     fn default() -> Self {
         Self {
             message: "".to_owned(),
-            state: Arc::new(Mutex::new(State {
-                synth: benihora_vst_ui::synth::Synth::new(),
-
-                vibrato_amount: FloatParam::new(
-                    "Vibrato Amount",
-                    0.0,
-                    FloatRange::Linear { min: 0.0, max: 0.1 },
-                ),
-                vibrato_rate: FloatParam::new(
-                    "Vibrato Rate",
-                    6.0,
-                    FloatRange::Skewed {
-                        min: 0.1,
-                        max: 20.0,
-                        factor: 1.0,
-                    },
-                ),
-                frequency_wobble: FloatParam::new(
-                    "Frequency Wobble",
-                    0.1,
-                    FloatRange::Linear { min: 0.0, max: 5.0 },
-                ),
-                tenseness_wobble: FloatParam::new(
-                    "Tenseness Wobble",
-                    1.0,
-                    FloatRange::Linear { min: 0.0, max: 5.0 },
-                ),
-
-                tongue_x: FloatParam::new(
-                    "Tongue X",
-                    DEFAULT_TONGUE.0,
-                    FloatRange::Linear {
-                        min: 12.0,
-                        max: 28.0,
-                    },
-                ),
-                tongue_y: FloatParam::new(
-                    "Tongue Y",
-                    DEFAULT_TONGUE.1,
-                    FloatRange::Linear { min: 2.0, max: 4.0 },
-                ),
-                gain: FloatParam::new(
-                    "Gain",
-                    db_to_gain(0.0),
-                    FloatRange::Skewed {
-                        min: db_to_gain(-30.0),
-                        max: db_to_gain(10.0),
-                        factor: FloatRange::gain_skew_factor(-30.0, 10.0),
-                    },
-                ),
-            })),
+            state: Arc::new(Mutex::new(State::default())),
             audio_result: None,
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             #[cfg(target_arch = "wasm32")]
@@ -235,7 +241,13 @@ impl eframe::App for App {
             // The top panel is often a good place for a menu bar:
 
             egui::menu::bar(ui, |ui| {
-                ui.label("Benihora🐚");
+                ui.label("Benihora🐚").context_menu(|ui| {
+                    if ui.button("Reset").clicked() {
+                        self.audio_result = None;
+                        *self.state.lock().unwrap() = State::default();
+                        ui.close_menu();
+                    }
+                });
 
                 ui.add_space(8.0);
 
