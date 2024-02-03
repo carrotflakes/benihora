@@ -47,4 +47,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: benihora-vst_${{ matrix.name }}
-          path: ./benihora-vst/target/bundled/benihora.vst3
+          path: ./benihora-vst/target/bundled
