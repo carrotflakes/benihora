@@ -90,19 +90,26 @@ pub fn knob<'a>(
     range: std::ops::Range<f32>,
     value: &'a mut f32,
     name: &'a str,
+    default_value: Option<f32>,
 ) -> impl egui::Widget + 'a {
-    move |ui: &mut egui::Ui| knob_ui(ui, range, value, None, Some(name), |v| format!("{:.2}", v))
+    move |ui: &mut egui::Ui| {
+        knob_ui(ui, range, value, default_value, Some(name), |v| {
+            format!("{:.2}", v)
+        })
+    }
 }
 
 pub fn knob_log<'a>(
     range: std::ops::Range<f32>,
     value: &'a mut f32,
     name: &'a str,
+    default_value: Option<f32>,
 ) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         let mut v = value.log10();
         let range = range.start.log10()..range.end.log10();
-        let res = knob_ui(ui, range, &mut v, None, Some(name), |v| {
+        let default_value = default_value.map(|v| v.log10());
+        let res = knob_ui(ui, range, &mut v, default_value, Some(name), |v| {
             format!("{:.2}", 10.0f32.powf(v))
         });
         *value = 10.0f32.powf(v);

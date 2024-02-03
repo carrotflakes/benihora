@@ -46,8 +46,8 @@ pub struct Params {
     pub aspiration_level: f32,
 }
 
-impl Params {
-    pub fn new() -> Self {
+impl Default for Params {
+    fn default() -> Self {
         Self {
             always_sound: false,
             frequency_pid: pid_controller::PIDParam::new(50.0, 20.0, 0.0),

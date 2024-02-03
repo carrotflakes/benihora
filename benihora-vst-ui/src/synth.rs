@@ -48,7 +48,7 @@ impl Synth {
         Synth {
             sound_speed: 3.0,
             seed: 0,
-            benihora_params: BenihoraParams::new(),
+            benihora_params: BenihoraParams::default(),
             tongue_poses: vec![
                 (27.2, 2.20), // i
                 (19.4, 3.43), // e

@@ -6,6 +6,7 @@ pub use self::knob::Param;
 
 use self::knob::{knob, knob_log, knob_param};
 use crate::{
+    benihora_managed::Params,
     synth::{Control, Synth},
     FFT_PLANNER,
 };
@@ -24,6 +25,8 @@ pub fn show<P: Param>(
     tongue_y: &mut P,
     gain: &mut P,
 ) {
+    let default_params = Params::default();
+
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
@@ -43,28 +46,31 @@ pub fn show<P: Param>(
 
             ui.label("Glottis");
             ui.horizontal(|ui| {
-                ui.add(knob(0.0..1.0, &mut synth.benihora_params.noteon_intensity, "Intensity"));
+                ui.add(knob(0.0..1.0, &mut synth.benihora_params.noteon_intensity, "Intensity", Some(default_params.noteon_intensity)));
                 if synth.benihora.as_mut().unwrap().intensity_pid_enabled {
                     ui.add(knob_log(
                     1.0..1000.0,
                         &mut synth.benihora_params.intensity_pid.kp,
                         "Intensity kp",
+                        Some(default_params.intensity_pid.kp)
                     ));
                     ui.add(knob_log(
                         0.1..1000.0,
                         &mut synth.benihora_params.intensity_pid.ki,
                         "Intensity ki",
+                        Some(default_params.intensity_pid.ki)
                     ));
                     ui.add(knob(
                         -0.9..0.9,
                         &mut synth.benihora_params.intensity_pid.kd,
                         "Intensity kd",
+                        Some(default_params.intensity_pid.kd)
                     ));
                 } else {
-                    ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[0], "Intensity Attack"));
-                    ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[1], "Intensity Decay"));
-                    ui.add(knob(0.01..1.0, &mut synth.benihora_params.intensity_adsr[2], "Intensity Sustain"));
-                    ui.add(knob(0.001..3.0, &mut synth.benihora_params.intensity_adsr[3], "Intensity Release"));
+                    ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[0], "Intensity Attack", Some(default_params.intensity_adsr[0])));
+                    ui.add(knob_log(0.001..3.0, &mut synth.benihora_params.intensity_adsr[1], "Intensity Decay", Some(default_params.intensity_adsr[1])));
+                    ui.add(knob(0.01..1.0, &mut synth.benihora_params.intensity_adsr[2], "Intensity Sustain", Some(default_params.intensity_adsr[2])));
+                    ui.add(knob(0.001..3.0, &mut synth.benihora_params.intensity_adsr[3], "Intensity Release", Some(default_params.intensity_adsr[3])));
                 }
             });
             ui.horizontal(|ui| {
@@ -72,16 +78,19 @@ pub fn show<P: Param>(
                     1.0..100.0,
                     &mut synth.benihora_params.frequency_pid.kp,
                     "Frequency kp",
+                    Some(default_params.frequency_pid.kp)
                 ));
                 ui.add(knob_log(
                     0.1..1000.0,
                     &mut synth.benihora_params.frequency_pid.ki,
                     "Frequency ki",
+                    Some(default_params.frequency_pid.ki)
                 ));
                 ui.add(knob(
                     -0.9..0.9,
                     &mut synth.benihora_params.frequency_pid.kd,
                     "Frequency kd",
+                    Some(default_params.frequency_pid.kd)
                 ));
                 ui.add(knob_param(vibrato_amount));
                 ui.add(knob_param(vibrato_rate));
@@ -93,16 +102,19 @@ pub fn show<P: Param>(
                     0.0..10.0,
                     &mut synth.benihora_params.aspiration_level,
                     "Aspiration level",
+                    Some(default_params.aspiration_level)
                 ));
                 ui.add(knob(
                     0.0..1.0,
                     &mut synth.benihora.as_mut().unwrap().tenseness.target_tenseness,
                     "Tensness",
+                    None
                 ));
                 ui.add(knob(
                     0.0..1.0,
                     &mut synth.benihora.as_mut().unwrap().loudness.target,
                     "Loudness",
+                    None
                 ));
                 if ui
                     .small_button("F")
@@ -136,12 +148,13 @@ pub fn show<P: Param>(
                 }
                 crate::synth::Control::Internal => {
                     let tract = &mut synth.benihora.as_mut().unwrap().tract;
-                    ui.add(knob(12.0..28.0, &mut tract.tongue_target.0, "Tongue x"));
-                    ui.add(knob(2.0..4.0, &mut tract.tongue_target.1, "Tongue y"));
+                    ui.add(knob(12.0..28.0, &mut tract.tongue_target.0, "Tongue x", None));
+                    ui.add(knob(2.0..4.0, &mut tract.tongue_target.1, "Tongue y", None));
                     ui.add(knob_log(
                         0.1..100.0,
                         &mut synth.benihora.as_mut().unwrap().tract.speed,
                         "Tongue speed",
+                        Some(20.0)
                     ));
                 }
             });

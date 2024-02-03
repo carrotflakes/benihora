@@ -268,7 +268,7 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
 
                 let mut remove_speed = false;
                 if let Some(speed) = speed {
-                    ui.add(knob_log(1.0..200.0, speed, "Speed"))
+                    ui.add(knob_log(1.0..200.0, speed, "Speed", None))
                         .context_menu(|ui| {
                             if ui.button("Remove").clicked() {
                                 remove_speed = true;
@@ -297,7 +297,7 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
                     });
 
                 if let Some(value) = strength {
-                    ui.add(knob(0.0..1.0, value, "Strength"))
+                    ui.add(knob(0.0..1.0, value, "Strength", None))
                         .context_menu(|ui| {
                             if ui.button("Release").clicked() {
                                 *strength = None;
@@ -313,10 +313,10 @@ fn event_ui(ev: &mut Event, ui: &mut egui::Ui, tongue_poses: usize, other_constr
             });
         }
         Event::Velum { openness } => {
-            ui.add(knob(0.0..1.0, openness, "Openness"));
+            ui.add(knob(0.0..1.0, openness, "Openness", None));
         }
         Event::Pitch { value } => {
-            ui.add(knob(-12.0..12.0, value, "Pitch"));
+            ui.add(knob(-12.0..12.0, value, "Pitch", Some(0.0)));
         }
         Event::Sound { sound } => {
             ui.checkbox(sound, "Sound");
