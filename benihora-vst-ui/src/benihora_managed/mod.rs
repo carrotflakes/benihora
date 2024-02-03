@@ -296,12 +296,12 @@ impl IntensityAdsr {
                 adsr[2]
             };
         } else {
-            self.elapsed = 0.0;
             self.value = if self.value > 0.0 {
                 self.value - self.dtime / adsr[3]
             } else {
                 0.0
             };
+            self.elapsed = self.value * adsr[0];
         }
         self.value
     }
