@@ -397,7 +397,7 @@ fn handle_input(ctx: &egui::Context, events: &mut VecDeque<synth::Event>) {
             {
                 events.push_back(synth::Event::NoteOn {
                     note: n,
-                    velocity: 1.0,
+                    velocity: 100.0 / 127.0,
                 });
             }
             if i.key_released(k) {
