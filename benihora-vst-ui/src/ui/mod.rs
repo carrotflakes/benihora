@@ -39,6 +39,7 @@ pub fn show<P: Param>(
                 }
                 ui.label("Sound speed");
             }).response.on_hover_text("This value determines the character of the voice.\n2: Male, 3: Female, 4~: Child");
+            ui.add_space(4.0);
 
             ui.label("Glottis");
             ui.horizontal(|ui| {
@@ -117,6 +118,8 @@ pub fn show<P: Param>(
                 "Use PID intensity",
             ));
 
+            ui.add_space(4.0);
+
             ui.horizontal(|ui| {
                 ui.label("Tongue");
 
@@ -150,6 +153,8 @@ pub fn show<P: Param>(
             //     );
             //     ui.label("Noteon routine");
             // });
+
+            ui.add_space(4.0);
 
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
@@ -185,12 +190,18 @@ pub fn show<P: Param>(
                 "Key bindings",
                 "Frequency response",
             ][view_mode];
-            if ui.link(view_mode_name).clicked() {
-                ui.data_mut(|d| {
-                    let view = d.get_persisted_mut_or_default::<usize>(view_id);
-                    *view = (*view + 1) % 5;
-                });
-            }
+            ui.horizontal(|ui| {
+                if ui.link(view_mode_name).clicked() {
+                    ui.data_mut(|d| {
+                        let view = d.get_persisted_mut_or_default::<usize>(view_id);
+                        *view = (*view + 1) % 5;
+                    });
+                }
+
+                if view_mode == 4 {
+                    ui.label("ℹ").on_hover_text("You can control each part and\ntrigger routines from MIDI note input.\nBelow are the note numbers and\nthe corresponding actions.");
+                }
+            });
 
             match view_mode {
                 0 => {
