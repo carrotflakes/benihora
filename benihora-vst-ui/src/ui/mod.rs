@@ -4,15 +4,15 @@ mod tract;
 
 pub use self::knob::Param;
 
-use self::knob::{knob, knob_log, knob_param};
+use self::{
+    knob::{knob, knob_log, knob_param},
+    tract::benihora_tract_frequency_response,
+};
 use crate::{
     benihora_managed::Params,
     synth::{Control, Synth},
-    FFT_PLANNER,
 };
-use benihora::tract::Tract;
 use egui::{self, ScrollArea};
-use rustfft::num_complex::Complex32;
 
 pub fn show<P: Param>(
     ui: &mut egui::Ui,
@@ -246,8 +246,8 @@ pub fn show<P: Param>(
                     show_frequency_response(
                         ui,
                         &benihora_tract_frequency_response(
-                            &synth.benihora.as_ref().unwrap().benihora.tract,
-                        ),
+                            &synth.benihora.as_ref().unwrap().benihora,
+                        ).0,
                     );
                 }
                 _ => unreachable!(),
@@ -354,25 +354,6 @@ fn show_frequency_response(ui: &mut egui::Ui, response: &[f32]) -> egui::Respons
         ui.painter().add(egui::Shape::line(points, stroke));
     });
     ui.allocate_rect(res.response.rect, egui::Sense::click())
-}
-
-pub fn benihora_tract_frequency_response(tract: &Tract) -> Vec<f32> {
-    let res = 1024;
-    let fft = FFT_PLANNER.with(|planner| planner.borrow_mut().plan_fft_forward(res));
-    let buf = benihora::tract_impulse_response(res, tract);
-    let mut buf = buf.iter().map(|c| Complex32::from(*c)).collect::<Vec<_>>();
-    fft.process(&mut buf);
-    let buf = buf
-        .iter()
-        .map(|c| c.norm())
-        .skip(1)
-        .take(res / 2)
-        .collect::<Vec<_>>();
-    let buf = buf
-        .iter()
-        .map(|v| v / (res as f32).sqrt())
-        .collect::<Vec<_>>();
-    buf
 }
 
 fn show_key_bindings(ui: &mut egui::Ui, synth: &mut Synth) {

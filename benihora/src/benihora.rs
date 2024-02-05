@@ -6,6 +6,7 @@ use super::tract::Tract;
 pub struct Benihora {
     force_turbulence: bool,
     pub sample_rate: f32,
+    pub(crate) inner_sample_rate: f32,
     pub glottis: Glottis,
     pub tract: Tract,
     resample: Resample,
@@ -29,6 +30,7 @@ impl Benihora {
         Self {
             force_turbulence,
             sample_rate,
+            inner_sample_rate,
             glottis: Glottis::new(inner_sample_rate, seed),
             tract: Tract::new(tract_steps_per_process, inner_sample_rate, seed + 1),
             resample: Resample::new(inner_sample_rate, sample_rate),

@@ -7,7 +7,7 @@ use benihora::{tract_impulse_response, Benihora};
 
 fn main() {
     let benihora = Benihora::new(3.0, 48000.0, 1.0, 0, false);
-    let buf = tract_impulse_response(48000, &benihora.tract);
+    let buf = tract_impulse_response(48000, &benihora).0;
 
     let mut stdout = std::io::stdout();
     for x in buf {

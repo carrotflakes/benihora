@@ -17,7 +17,7 @@ pub struct Tract {
     update_timer: IntervalTimer,
     fricative_noise: Noise,
     last_obstruction: usize,
-    steps_per_process: usize,
+    pub(crate) steps_per_process: usize,
     dtime: f32,
 }
 
