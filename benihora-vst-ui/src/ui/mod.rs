@@ -116,6 +116,13 @@ pub fn show<P: Param>(
                     "Loudness",
                     None
                 ));
+                ui.add(
+                    knob(
+                        0.0..0.1,
+                        &mut synth.noteon_sound_delay,
+                        "NoteOn sound delay",
+                        Some(0.0)
+                ));
                 if ui
                     .small_button("F")
                     .on_hover_text("Set frequency to 440Hz")

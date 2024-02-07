@@ -100,12 +100,12 @@ impl Runtime {
     }
 
     pub fn push_routine(&mut self, routine: &Routine) {
+        self.push_events(&routine.events);
+    }
+
+    pub fn push_events(&mut self, events: &[(f32, Event)]) {
         // remove the same type events
-        let mut kinds = routine
-            .events
-            .iter()
-            .map(|(_, e)| e.kind())
-            .collect::<Vec<_>>();
+        let mut kinds = events.iter().map(|(_, e)| e.kind()).collect::<Vec<_>>();
         kinds.sort();
         kinds.dedup();
         let mut i = 0;
@@ -120,7 +120,7 @@ impl Runtime {
             }
         }
 
-        let mut events = routine.events.clone();
+        let mut events = events.to_vec();
         let mut merged = Vec::new();
 
         while !self.events.is_empty() && !events.is_empty() {

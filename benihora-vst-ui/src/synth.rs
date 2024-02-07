@@ -8,6 +8,8 @@ pub struct Synth {
     // Don't forget to add serde default to new fields
     pub sound_speed: f32,
     pub seed: u32,
+    #[serde(default)]
+    pub noteon_sound_delay: f32,
     pub benihora_params: BenihoraParams,
     pub tongue_poses: Vec<(f32, f32)>,
     pub other_constrictions: Vec<(f32, f32)>,
@@ -48,6 +50,7 @@ impl Synth {
         Synth {
             sound_speed: 3.0,
             seed: 0,
+            noteon_sound_delay: 0.0,
             benihora_params: BenihoraParams::default(),
             tongue_poses: vec![
                 (27.2, 2.20), // i
@@ -222,7 +225,11 @@ impl Synth {
                         .frequency
                         .set(440.0 * 2.0f32.powf((note as f32 - 69.0) / 12.0), muted);
                     benihora.set_tenseness(*velocity as f32);
-                    benihora.sound = true;
+                    // benihora.sound = true;
+                    self.routine_runtime.push_events(&[(
+                        self.noteon_sound_delay,
+                        routine::Event::Sound { sound: true },
+                    )]);
                     if (1..=self.routines.len()).contains(&self.noteon_routine) {
                         self.trigger_routine(self.noteon_routine - 1);
                     }
@@ -255,7 +262,9 @@ impl Synth {
                         .set(440.0 * 2.0f32.powf((note as f32 - 69.0) / 12.0), false);
                     benihora.sound = true;
                 } else {
-                    benihora.sound = false;
+                    // benihora.sound = false;
+                    self.routine_runtime
+                        .push_events(&[(0.0, routine::Event::Sound { sound: false })]);
                     self.elapsed_from_note_off = 0.0;
                     if (1..=self.routines.len()).contains(&self.noteoff_routine) {
                         self.trigger_routine(self.noteoff_routine - 1);
