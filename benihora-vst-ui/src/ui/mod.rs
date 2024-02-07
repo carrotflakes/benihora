@@ -211,6 +211,22 @@ pub fn show<P: Param>(
                     });
                 }
 
+                if view_mode == 0 {
+                    let tract_edit_id = egui::Id::new(tract::TRACT_EDIT_ID);
+                    let mut tract_edit = ui.data(|d| {
+                        d.get_temp::<bool>(tract_edit_id)
+                            .unwrap_or_default()
+                    });
+                    tract_edit ^= ui
+                            .add(
+                                egui::Button::new("Edit")
+                                    .small()
+                                    .fill(if tract_edit {ui.style().visuals.selection.bg_fill} else {
+                                        ui.style().visuals.widgets.inactive.bg_fill
+                                    }),
+                            ).on_hover_text("You can move constriction points and tongue points").clicked();
+                    ui.data_mut(|d| d.insert_temp(tract_edit_id, tract_edit));
+                }
                 if view_mode == 4 {
                     ui.label("ℹ").on_hover_text("You can control each part and\ntrigger routines from MIDI note input.\nBelow are the note numbers and\nthe corresponding actions.");
                 }

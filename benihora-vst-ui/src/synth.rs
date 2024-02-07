@@ -151,7 +151,8 @@ impl Synth {
                 } else {
                     10.0
                 };
-                benihora.benihora.tract.source.other_constrictions[i].1 = diameter;
+                benihora.benihora.tract.source.other_constrictions[i] =
+                    (self.other_constrictions[i].0, diameter);
             }
             routine::Event::Velum { openness } => {
                 benihora
@@ -193,7 +194,8 @@ impl Synth {
                 if (base..base + self.other_constrictions.len() as u8).contains(note) {
                     let i = *note as usize - base as usize;
                     let diameter = self.other_constrictions[i].1 * (1.0 - *velocity as f32);
-                    benihora.benihora.tract.source.other_constrictions[i].1 = diameter;
+                    benihora.benihora.tract.source.other_constrictions[i] =
+                        (self.other_constrictions[i].0, diameter);
                     benihora.benihora.tract.update_diameter();
                     return;
                 }
@@ -231,7 +233,8 @@ impl Synth {
                 let base = base + self.tongue_poses.len() as u8;
                 if (base..base + self.other_constrictions.len() as u8).contains(note) {
                     let i = *note as usize - base as usize;
-                    benihora.benihora.tract.source.other_constrictions[i].1 = 10.0;
+                    benihora.benihora.tract.source.other_constrictions[i] =
+                        (self.other_constrictions[i].0, 10.0);
                     benihora.benihora.tract.update_diameter();
                     return;
                 }

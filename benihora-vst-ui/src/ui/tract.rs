@@ -4,6 +4,7 @@ use rustfft::num_complex::Complex32;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Part {
     Tongue,
+    TonguePoint(usize),
     Constriction(usize),
     Velum,
     TongueArea,
@@ -18,6 +19,8 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
     } = synth;
     let benihora = benihora.as_mut().unwrap();
 
+    let tract_edit_id = egui::Id::new(TRACT_EDIT_ID);
+    let tract_edit = ui.data(|d| d.get_temp::<bool>(tract_edit_id).unwrap_or_default());
     let drag_mode_id = ui.make_persistent_id("tract_drag");
     let mut drag_mode = ui.data(|d| d.get_temp::<Option<Part>>(drag_mode_id).unwrap_or_default());
 
@@ -81,9 +84,10 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
             to_screen * egui::pos2(TONGUE_X_RANGE.start, TONGUE_Y_RANGE.start + dy),
             to_screen * egui::pos2(TONGUE_X_RANGE.end, TONGUE_Y_RANGE.end + dy),
         );
-        if tongue_area_rect
-            .expand(2.5)
-            .contains(pointer.unwrap_or_default())
+        if !tract_edit
+            && tongue_area_rect
+                .expand(2.5)
+                .contains(pointer.unwrap_or_default())
         {
             hover = Some(Part::TongueArea);
         }
@@ -99,6 +103,12 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         for (i, pos) in tongue_poses.iter().enumerate() {
             let pos = to_screen * egui::pos2(pos.0, (pos.1) + dy);
             if pointer.map(|p| (p - pos).length() < 5.0).unwrap_or(false) {
+                if tract_edit {
+                    hover = Some(Part::TonguePoint(i));
+                    ui.painter()
+                        .circle_filled(pos, 5.0, egui::Color32::RED.linear_multiply(0.1));
+                }
+
                 egui::containers::show_tooltip_for(
                     ui.ctx(),
                     ui.id().with("__tooltip"),
@@ -181,10 +191,9 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
         egui::Rect::from_x_y_ranges(0.0..=45.0, 0.0..=10.0),
     );
     if res.drag_started() {
-        drag_mode = if hover == Some(Part::TongueArea) {
-            Some(Part::Tongue)
-        } else {
-            hover
+        drag_mode = match hover {
+            Some(Part::TongueArea) => Some(Part::Tongue),
+            part => part,
         };
     }
     if res.clicked() {
@@ -227,10 +236,20 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
                     );
                 }
             }
+            Some(Part::TonguePoint(ti)) => {
+                if let Some(pos) = pointer {
+                    let pos = from_screen * pos;
+                    tongue_poses[ti] = (pos.x, pos.y - dy);
+                }
+            }
             Some(Part::Constriction(ci)) => {
                 if let Some(pos) = pointer {
                     let pos = from_screen * pos;
-                    benihora.benihora.tract.source.other_constrictions[ci].1 = pos.y - dy;
+                    if tract_edit {
+                        other_constrictions[ci] = (pos.x, pos.y - dy);
+                    } else {
+                        benihora.benihora.tract.source.other_constrictions[ci].1 = pos.y - dy;
+                    }
                 }
             }
             _ => {}
@@ -243,6 +262,8 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
 
 const TONGUE_X_RANGE: std::ops::Range<f32> = 12.0..28.0;
 const TONGUE_Y_RANGE: std::ops::Range<f32> = 2.0..4.0;
+
+pub const TRACT_EDIT_ID: &str = "benihora_tract_edit";
 
 pub fn benihora_tract_frequency_response(benihora: &benihora::Benihora) -> (Vec<f32>, f32) {
     let frequency = 1000.0f32;
