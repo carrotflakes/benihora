@@ -248,7 +248,8 @@ pub fn show_tract(ui: &mut egui::Ui, synth: &mut Synth) -> egui::Response {
                     if tract_edit {
                         other_constrictions[ci] = (pos.x, pos.y - dy);
                     } else {
-                        benihora.benihora.tract.source.other_constrictions[ci].1 = pos.y - dy;
+                        let x = other_constrictions[ci].0;
+                        benihora.benihora.tract.source.other_constrictions[ci] = (x, pos.y - dy);
                     }
                 }
             }
